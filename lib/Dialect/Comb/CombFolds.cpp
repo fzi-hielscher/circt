@@ -968,6 +968,27 @@ LogicalResult AndOp::canonicalize(AndOp op, PatternRewriter &rewriter) {
     }
   }
 
+  // n-state: and(a, ~a) / and(~a, a) -> xor(a, a)
+  if (!twoState && size == 2) {
+    Value subExpr;
+    bool doReplace = false;
+
+    if (matchPattern(inputs[1], m_Complement(m_Any(&subExpr)))) {
+      if (subExpr == inputs[0])
+        doReplace = true;
+    } else if (matchPattern(inputs[0], m_Complement(m_Any(&subExpr)))) {
+      if (subExpr == inputs[1])
+        doReplace = true;
+    }
+
+    if (doReplace) {
+      SmallVector<Value, 2> newOperands({subExpr, subExpr});
+      replaceOpWithNewOpAndCopyName<XorOp>(rewriter, op, op.getType(),
+                                           newOperands, /*twoState=*/ false);
+      return success();
+    }
+  }
+
   // and(x, and(...)) -> and(x, ...) -- flatten
   if (tryFlatteningOperands(op, rewriter))
     return success();
