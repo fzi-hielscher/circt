@@ -92,11 +92,32 @@ struct ComplementMatcher {
     return xorOp && xorOp.isBinaryNot() && lhs.match(op->getOperand(0));
   }
 };
+
+template <typename SubType>
+struct XorIdentityMatcher {
+  SubType lhs;
+  XorIdentityMatcher(SubType lhs) : lhs(std::move(lhs)) {}
+  bool match(Operation *op) {
+    auto xorOp = dyn_cast<XorOp>(op);
+    if (!(xorOp && xorOp.getNumOperands() == 2 && lhs.match(op->getOperand(0))))
+      return false;
+    if (auto cst = xorOp.getOperand(1).getDefiningOp<hw::ConstantOp>())
+      if (cst.getValue().isZero())
+        return true;
+    return false;
+  }
+};
+
 } // end anonymous namespace
 
 template <typename SubType>
 static inline ComplementMatcher<SubType> m_Complement(const SubType &subExpr) {
   return ComplementMatcher<SubType>(subExpr);
+}
+
+template <typename SubType>
+static inline XorIdentityMatcher<SubType> m_XorIdentity(const SubType &subExpr) {
+  return XorIdentityMatcher<SubType>(subExpr);
 }
 
 /// Flattens a single input in `op` if `hasOneUse` is true and it can be defined
@@ -828,16 +849,42 @@ static Value getCommonOperand(Op op) {
 ///
 /// Example: `and(x, y, x, z)` -> `and(x, y, z)`
 template <typename Op>
-static bool canonicalizeIdempotentInputs(Op op, PatternRewriter &rewriter) {
+static bool canonicalizeIdempotentInputsAndFlattenXorIdentities(Op op, PatternRewriter &rewriter) {
   auto inputs = op.getInputs();
+  bool twoState = op.getTwoState();
   llvm::SmallSetVector<Value, 8> uniqueInputs;
 
-  for (const auto input : inputs)
-    uniqueInputs.insert(input);
+  bool identityReplaced = false;
+  for (const auto input : inputs) {
+    Value subExpr;
+     if (matchPattern(input, m_XorIdentity(m_Any(&subExpr)))) {
+      uniqueInputs.insert(subExpr);
+      identityReplaced = true;
+     } else {
+      uniqueInputs.insert(input);
+     }
+  }
 
-  if (uniqueInputs.size() < inputs.size()) {
+  if (uniqueInputs.size() == 1) {
+    assert((identityReplaced || !twoState) && "expected 2 or more operands, `fold` should handle this");
+    if (!twoState) {
+      // Replace op with Xor identity
+      auto width = op.getType().getIntOrFloatBitWidth();
+      auto cst0 = rewriter.create<hw::ConstantOp>(op.getLoc(), APInt::getZero(width));
+      Value newOperands[2] = {uniqueInputs[0], cst0};
+      replaceOpWithNewOpAndCopyName<XorOp>(rewriter, op, op.getType(),
+                                      newOperands, twoState);
+      return true;
+    } else {
+      // Replace op with 'normal' identity
+      replaceOpAndCopyName(rewriter, op, uniqueInputs[0]);
+      return true;
+    }
+  }
+
+  if (uniqueInputs.size() < inputs.size() || identityReplaced) {
     replaceOpWithNewOpAndCopyName<Op>(rewriter, op, op.getType(),
-                                      uniqueInputs.getArrayRef());
+                                      uniqueInputs.getArrayRef(), twoState);
     return true;
   }
 
@@ -852,7 +899,7 @@ LogicalResult AndOp::canonicalize(AndOp op, PatternRewriter &rewriter) {
 
   // and(..., x, ..., x) -> and(..., x, ...) -- idempotent
   // Trivial and(x), and(x, x) cases are handled by [AndOp::fold] above.
-  if (size > 2 && canonicalizeIdempotentInputs(op, rewriter))
+  if (canonicalizeIdempotentInputsAndFlattenXorIdentities(op, rewriter))
     return success();
 
   // Patterns for and with a constant on RHS.
@@ -1165,7 +1212,7 @@ LogicalResult OrOp::canonicalize(OrOp op, PatternRewriter &rewriter) {
 
   // or(..., x, ..., x, ...) -> or(..., x) -- idempotent
   // Trivial or(x), or(x, x) cases are handled by [OrOp::fold].
-  if (size > 2 && canonicalizeIdempotentInputs(op, rewriter))
+  if (canonicalizeIdempotentInputsAndFlattenXorIdentities(op, rewriter))
     return success();
 
   // Patterns for and with a constant on RHS.
