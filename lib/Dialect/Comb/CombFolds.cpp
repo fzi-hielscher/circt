@@ -1325,7 +1325,7 @@ LogicalResult XorOp::canonicalize(XorOp op, PatternRewriter &rewriter) {
   // xor(a[0], a[1], ..., a[n]) -> parity(a)
   if (twoState) {
     if (auto source = getCommonOperand(op)) {
-      replaceOpWithNewOpAndCopyName<ParityOp>(rewriter, op, source);
+      replaceOpWithNewOpAndCopyName<ParityOp>(rewriter, op, source, /*twoState=*/ true);
       return success();
     }
   }
