@@ -214,6 +214,9 @@ static bool narrowOperationWidth(OpTy op, bool narrowTrailingBits,
                                                       inop, range.first));
   }
   Value newop = rewriter.createOrFold<OpTy>(op.getLoc(), newType, args);
+  if (op.getTwoState())
+    newop.getDefiningOp()->setAttr("twoState", rewriter.getUnitAttr());
+
   if (range.first)
     newop = rewriter.createOrFold<ConcatOp>(
         op.getLoc(), newop,
@@ -664,6 +667,7 @@ static bool canonicalizeLogicalCstWithConcat(Operation *logicalOp,
                                              size_t concatIdx, const APInt &cst,
                                              PatternRewriter &rewriter) {
   auto concatOp = logicalOp->getOperand(concatIdx).getDefiningOp<ConcatOp>();
+  bool twoState = logicalOp->hasAttrOfType<UnitAttr>("twoState");
   assert((isa<AndOp, OrOp, XorOp>(logicalOp) && concatOp));
 
   // Check to see if any operands can be simplified by pushing the logical op
@@ -689,9 +693,13 @@ static bool canonicalizeLogicalCstWithConcat(Operation *logicalOp,
 
   // Create a new instance of the logical operation.  We have to do this the
   // hard way since we're generic across a family of different ops.
+  // Make sure to propagate the twoState attribute of the original op.
   auto createLogicalOp = [&](ArrayRef<Value> operands) -> Value {
-    return createGenericOp(logicalOp->getLoc(), logicalOp->getName(), operands,
+    auto result = createGenericOp(logicalOp->getLoc(), logicalOp->getName(), operands,
                            rewriter);
+    if (twoState)
+      result.getDefiningOp()->setAttr("twoState", rewriter.getUnitAttr());
+    return result;
   };
 
   // Ok, let's do the transformation.  We do this by slicing up the constant
@@ -749,26 +757,31 @@ OpFoldResult AndOp::fold(FoldAdaptor adaptor) {
       return getIntAttr(value, getContext());
   }
 
-  // and(x, -1) -> x.
-  if (inputs.size() == 2 && inputs[1] &&
-      inputs[1].cast<IntegerAttr>().getValue().isAllOnes())
-    return getInputs()[0];
+  if (getTwoState()) {
+    // and(x, -1) -> x.
+    if (inputs.size() == 2 && inputs[1] &&
+        inputs[1].cast<IntegerAttr>().getValue().isAllOnes())
+      return getInputs()[0];
 
-  // and(x, x, x) -> x.  This also handles and(x) -> x.
-  if (llvm::all_of(getInputs(),
-                   [&](auto in) { return in == this->getInputs()[0]; }))
-    return getInputs()[0];
+    // and(x, x, x) -> x.  This also handles and(x) -> x.
+    if (llvm::all_of(getInputs(),
+                    [&](auto in) { return in == this->getInputs()[0]; }))
+      return getInputs()[0];
 
-  // and(..., x, ..., ~x, ...) -> 0
-  for (Value arg : getInputs()) {
-    Value subExpr;
-    if (matchPattern(arg, m_Complement(m_Any(&subExpr)))) {
-      for (Value arg2 : getInputs())
-        if (arg2 == subExpr)
-          return getIntAttr(
-              APInt::getZero(getType().cast<IntegerType>().getWidth()),
-              getContext());
+    // and(..., x, ..., ~x, ...) -> 0
+    for (Value arg : getInputs()) {
+      Value subExpr;
+      if (matchPattern(arg, m_Complement(m_Any(&subExpr)))) {
+        for (Value arg2 : getInputs())
+          if (arg2 == subExpr)
+            return getIntAttr(
+                APInt::getZero(getType().cast<IntegerType>().getWidth()),
+                getContext());
+      }
     }
+  } else if (getInputs().size() == 1) {
+    // and(x) -> x
+    return getInputs()[0];
   }
 
   // Constant fold
@@ -835,6 +848,7 @@ static bool canonicalizeIdempotentInputs(Op op, PatternRewriter &rewriter) {
 LogicalResult AndOp::canonicalize(AndOp op, PatternRewriter &rewriter) {
   auto inputs = op.getInputs();
   auto size = inputs.size();
+  bool twoState = op.getTwoState();
   assert(size > 1 && "expected 2 or more operands, `fold` should handle this");
 
   // and(..., x, ..., x) -> and(..., x, ...) -- idempotent
@@ -846,9 +860,9 @@ LogicalResult AndOp::canonicalize(AndOp op, PatternRewriter &rewriter) {
   APInt value;
   if (matchPattern(inputs.back(), m_ConstantInt(&value))) {
     // and(..., '1) -> and(...) -- identity
-    if (value.isAllOnes()) {
+    if ((twoState || size > 2) && value.isAllOnes()) {
       replaceOpWithNewOpAndCopyName<AndOp>(rewriter, op, op.getType(),
-                                           inputs.drop_back(), false);
+                                           inputs.drop_back(), twoState);
       return success();
     }
 
@@ -861,12 +875,12 @@ LogicalResult AndOp::canonicalize(AndOp op, PatternRewriter &rewriter) {
       SmallVector<Value, 4> newOperands(inputs.drop_back(/*n=*/2));
       newOperands.push_back(cst);
       replaceOpWithNewOpAndCopyName<AndOp>(rewriter, op, op.getType(),
-                                           newOperands, false);
+                                           newOperands, twoState);
       return success();
     }
 
     // Handle 'and' with a single bit constant on the RHS.
-    if (size == 2 && value.isPowerOf2()) {
+    if (twoState && size == 2 && value.isPowerOf2()) {
       // If the LHS is a replicate from a single bit, we can 'concat' it
       // into place.  e.g.:
       //   `replicate(x) & 4` -> `concat(zeros, x, zeros)`
@@ -916,7 +930,7 @@ LogicalResult AndOp::canonicalize(AndOp op, PatternRewriter &rewriter) {
           auto loc = inputs.back().getLoc();
           smallElt = rewriter.createOrFold<AndOp>(
               loc, smallElt, rewriter.create<hw::ConstantOp>(loc, smallMask),
-              false);
+              twoState);
         }
 
         // The final replacement will be a concat of the leading/trailing zeros
@@ -957,7 +971,7 @@ LogicalResult AndOp::canonicalize(AndOp op, PatternRewriter &rewriter) {
     auto cmpAgainst =
         rewriter.create<hw::ConstantOp>(op.getLoc(), APInt::getAllOnes(size));
     replaceOpWithNewOpAndCopyName<ICmpOp>(rewriter, op, ICmpPredicate::eq,
-                                          source, cmpAgainst);
+                                          source, cmpAgainst, op.getTwoState());
     return success();
   }
 
