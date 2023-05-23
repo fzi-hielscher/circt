@@ -937,7 +937,7 @@ LogicalResult AndOp::canonicalize(AndOp op, PatternRewriter &rewriter) {
     }
 
     // Handle 'and' with a single bit constant on the RHS.
-    if (twoState && size == 2 && value.isPowerOf2()) {
+    if (size == 2 && value.isPowerOf2()) {
       // If the LHS is a replicate from a single bit, we can 'concat' it
       // into place.  e.g.:
       //   `replicate(x) & 4` -> `concat(zeros, x, zeros)`
@@ -955,7 +955,16 @@ LogicalResult AndOp::canonicalize(AndOp op, PatternRewriter &rewriter) {
                 op.getLoc(), APInt::getZero(resultWidth - trailingZeros - 1));
             concatOperands.push_back(highZeros);
           }
-          concatOperands.push_back(replicateOperand);
+
+          if (twoState) {
+            concatOperands.push_back(replicateOperand);
+          } else {
+            // Create XorIdentity to retain n-state behaviour
+            auto cst0 = rewriter.create<hw::ConstantOp>(op.getLoc(), APInt::getZero(1));
+            auto xorId = rewriter.create<XorOp>(op.getLoc(), replicateOperand, cst0, /*twoState=*/ false);
+            concatOperands.push_back(xorId);
+          }
+
           if (trailingZeros != 0) {
             auto lowZeros = rewriter.create<hw::ConstantOp>(
                 op.getLoc(), APInt::getZero(trailingZeros));
