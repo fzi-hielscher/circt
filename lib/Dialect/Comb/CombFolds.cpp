@@ -967,12 +967,14 @@ LogicalResult AndOp::canonicalize(AndOp op, PatternRewriter &rewriter) {
     return success();
 
   // and(a[0], a[1], ..., a[n]) -> icmp eq(a, -1)
-  if (auto source = getCommonOperand(op)) {
-    auto cmpAgainst =
-        rewriter.create<hw::ConstantOp>(op.getLoc(), APInt::getAllOnes(size));
-    replaceOpWithNewOpAndCopyName<ICmpOp>(rewriter, op, ICmpPredicate::eq,
-                                          source, cmpAgainst, op.getTwoState());
-    return success();
+  if (twoState) {
+    if (auto source = getCommonOperand(op)) {
+      auto cmpAgainst =
+          rewriter.create<hw::ConstantOp>(op.getLoc(), APInt::getAllOnes(size));
+      replaceOpWithNewOpAndCopyName<ICmpOp>(rewriter, op, ICmpPredicate::eq,
+                                            source, cmpAgainst, op.getTwoState());
+      return success();
+    }
   }
 
   /// TODO: and(..., x, not(x)) -> and(..., 0) -- complement
@@ -1185,12 +1187,14 @@ LogicalResult OrOp::canonicalize(OrOp op, PatternRewriter &rewriter) {
     return success();
 
   // or(a[0], a[1], ..., a[n]) -> icmp ne(a, 0)
-  if (auto source = getCommonOperand(op)) {
-    auto cmpAgainst =
-        rewriter.create<hw::ConstantOp>(op.getLoc(), APInt::getZero(size));
-    replaceOpWithNewOpAndCopyName<ICmpOp>(rewriter, op, ICmpPredicate::ne,
-                                          source, cmpAgainst, twoState);
-    return success();
+  if (twoState) {
+    if (auto source = getCommonOperand(op)) {
+      auto cmpAgainst =
+          rewriter.create<hw::ConstantOp>(op.getLoc(), APInt::getZero(size));
+      replaceOpWithNewOpAndCopyName<ICmpOp>(rewriter, op, ICmpPredicate::ne,
+                                            source, cmpAgainst, twoState);
+      return success();
+    }
   }
 
   /// TODO: or(..., x, not(x)) -> or(..., '1) -- complement
@@ -1319,9 +1323,11 @@ LogicalResult XorOp::canonicalize(XorOp op, PatternRewriter &rewriter) {
     return success();
 
   // xor(a[0], a[1], ..., a[n]) -> parity(a)
-  if (auto source = getCommonOperand(op)) {
-    replaceOpWithNewOpAndCopyName<ParityOp>(rewriter, op, source);
-    return success();
+  if (twoState) {
+    if (auto source = getCommonOperand(op)) {
+      replaceOpWithNewOpAndCopyName<ParityOp>(rewriter, op, source);
+      return success();
+    }
   }
 
   return failure();
