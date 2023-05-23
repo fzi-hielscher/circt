@@ -991,26 +991,31 @@ OpFoldResult OrOp::fold(FoldAdaptor adaptor) {
       return getIntAttr(value, getContext());
   }
 
-  // or(x, 0) -> x
-  if (inputs.size() == 2 && inputs[1] &&
-      inputs[1].cast<IntegerAttr>().getValue().isZero())
-    return getInputs()[0];
+  if (getTwoState()) {
+    // or(x, 0) -> x
+    if (inputs.size() == 2 && inputs[1] &&
+        inputs[1].cast<IntegerAttr>().getValue().isZero())
+      return getInputs()[0];
 
-  // or(x, x, x) -> x.  This also handles or(x) -> x
-  if (llvm::all_of(getInputs(),
-                   [&](auto in) { return in == this->getInputs()[0]; }))
-    return getInputs()[0];
+    // or(x, x, x) -> x.  This also handles or(x) -> x
+    if (llvm::all_of(getInputs(),
+                    [&](auto in) { return in == this->getInputs()[0]; }))
+      return getInputs()[0];
 
-  // or(..., x, ..., ~x, ...) -> -1
-  for (Value arg : getInputs()) {
-    Value subExpr;
-    if (matchPattern(arg, m_Complement(m_Any(&subExpr)))) {
-      for (Value arg2 : getInputs())
-        if (arg2 == subExpr)
-          return getIntAttr(
-              APInt::getAllOnes(getType().cast<IntegerType>().getWidth()),
-              getContext());
+    // or(..., x, ..., ~x, ...) -> -1
+    for (Value arg : getInputs()) {
+      Value subExpr;
+      if (matchPattern(arg, m_Complement(m_Any(&subExpr)))) {
+        for (Value arg2 : getInputs())
+          if (arg2 == subExpr)
+            return getIntAttr(
+                APInt::getAllOnes(getType().cast<IntegerType>().getWidth()),
+                getContext());
+      }
     }
+  } else if (getInputs().size() == 1) {
+    // or(x) -> x
+    return getInputs()[0];
   }
 
   // Constant fold
@@ -1038,6 +1043,7 @@ static bool canonicalizeOrOfConcatsWithCstOperands(OrOp op, size_t concatIdx1,
   assert(concatIdx1 < concatIdx2 && "concatIdx1 must be < concatIdx2");
 
   auto inputs = op.getInputs();
+  bool twoState = op.getTwoState();
   auto concat1 = inputs[concatIdx1].getDefiningOp<ConcatOp>();
   auto concat2 = inputs[concatIdx2].getDefiningOp<ConcatOp>();
 
@@ -1086,7 +1092,7 @@ static bool canonicalizeOrOfConcatsWithCstOperands(OrOp op, size_t concatIdx1,
         op.getLoc(), narrowedType, operand2, remainingWidth2 - widthToConsume);
 
     newConcatOperands.push_back(
-        rewriter.createOrFold<OrOp>(op.getLoc(), extract1, extract2, false));
+        rewriter.createOrFold<OrOp>(op.getLoc(), extract1, extract2, twoState));
 
     consumedWidth1 += widthToConsume;
     consumedWidth2 += widthToConsume;
@@ -1114,13 +1120,14 @@ static bool canonicalizeOrOfConcatsWithCstOperands(OrOp op, size_t concatIdx1,
   newOrOperands.push_back(newOp);
 
   replaceOpWithNewOpAndCopyName<OrOp>(rewriter, op, op.getType(),
-                                      newOrOperands);
+                                      newOrOperands, twoState);
   return true;
 }
 
 LogicalResult OrOp::canonicalize(OrOp op, PatternRewriter &rewriter) {
   auto inputs = op.getInputs();
   auto size = inputs.size();
+  bool twoState = op.getTwoState();
   assert(size > 1 && "expected 2 or more operands");
 
   // or(..., x, ..., x, ...) -> or(..., x) -- idempotent
@@ -1132,9 +1139,9 @@ LogicalResult OrOp::canonicalize(OrOp op, PatternRewriter &rewriter) {
   APInt value;
   if (matchPattern(inputs.back(), m_ConstantInt(&value))) {
     // or(..., '0) -> or(...) -- identity
-    if (value.isZero()) {
+    if ((twoState || size > 2) && value.isZero()) {
       replaceOpWithNewOpAndCopyName<OrOp>(rewriter, op, op.getType(),
-                                          inputs.drop_back());
+                                          inputs.drop_back(), twoState);
       return success();
     }
 
@@ -1145,7 +1152,7 @@ LogicalResult OrOp::canonicalize(OrOp op, PatternRewriter &rewriter) {
       SmallVector<Value, 4> newOperands(inputs.drop_back(/*n=*/2));
       newOperands.push_back(cst);
       replaceOpWithNewOpAndCopyName<OrOp>(rewriter, op, op.getType(),
-                                          newOperands);
+                                          newOperands, twoState);
       return success();
     }
 
@@ -1182,7 +1189,7 @@ LogicalResult OrOp::canonicalize(OrOp op, PatternRewriter &rewriter) {
     auto cmpAgainst =
         rewriter.create<hw::ConstantOp>(op.getLoc(), APInt::getZero(size));
     replaceOpWithNewOpAndCopyName<ICmpOp>(rewriter, op, ICmpPredicate::ne,
-                                          source, cmpAgainst);
+                                          source, cmpAgainst, twoState);
     return success();
   }
 
