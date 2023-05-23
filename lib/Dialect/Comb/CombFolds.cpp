@@ -1205,22 +1205,24 @@ OpFoldResult XorOp::fold(FoldAdaptor adaptor) {
   if (size == 1)
     return getInputs()[0];
 
-  // xor(x, x) -> 0 -- idempotent
-  if (size == 2 && getInputs()[0] == getInputs()[1])
-    return IntegerAttr::get(getType(), 0);
+  if (getTwoState()) {
+    // xor(x, x) -> 0 -- idempotent
+    if (size == 2 && getInputs()[0] == getInputs()[1])
+      return IntegerAttr::get(getType(), 0);
 
-  // xor(x, 0) -> x
-  if (inputs.size() == 2 && inputs[1] &&
-      inputs[1].cast<IntegerAttr>().getValue().isZero())
-    return getInputs()[0];
+    // xor(x, 0) -> x
+    if (inputs.size() == 2 && inputs[1] &&
+        inputs[1].cast<IntegerAttr>().getValue().isZero())
+      return getInputs()[0];
 
-  // xor(xor(x,1),1) -> x
-  // but not self loop
-  if (isBinaryNot()) {
-    Value subExpr;
-    if (matchPattern(getOperand(0), m_Complement(m_Any(&subExpr))) &&
-        subExpr != getResult())
-      return subExpr;
+    // xor(xor(x,1),1) -> x
+    // but not self loop
+    if (isBinaryNot()) {
+      Value subExpr;
+      if (matchPattern(getOperand(0), m_Complement(m_Any(&subExpr))) &&
+          subExpr != getResult())
+        return subExpr;
+    }
   }
 
   // Constant fold
@@ -1252,6 +1254,7 @@ static void canonicalizeXorIcmpTrue(XorOp op, unsigned icmpOperand,
 LogicalResult XorOp::canonicalize(XorOp op, PatternRewriter &rewriter) {
   auto inputs = op.getInputs();
   auto size = inputs.size();
+  bool twoState = op.getTwoState();
   assert(size > 1 && "expected 2 or more operands");
 
   // xor(..., x, x) -> xor (...) -- idempotent
@@ -1259,7 +1262,7 @@ LogicalResult XorOp::canonicalize(XorOp op, PatternRewriter &rewriter) {
     assert(size > 2 &&
            "expected idempotent case for 2 elements handled already.");
     replaceOpWithNewOpAndCopyName<XorOp>(rewriter, op, op.getType(),
-                                         inputs.drop_back(/*n=*/2), false);
+                                         inputs.drop_back(/*n=*/2), twoState);
     return success();
   }
 
@@ -1267,9 +1270,9 @@ LogicalResult XorOp::canonicalize(XorOp op, PatternRewriter &rewriter) {
   APInt value;
   if (matchPattern(inputs.back(), m_ConstantInt(&value))) {
     // xor(..., 0) -> xor(...) -- identity
-    if (value.isZero()) {
+    if ((twoState || size > 2) && value.isZero()) {
       replaceOpWithNewOpAndCopyName<XorOp>(rewriter, op, op.getType(),
-                                           inputs.drop_back(), false);
+                                           inputs.drop_back(), twoState);
       return success();
     }
 
@@ -1280,7 +1283,7 @@ LogicalResult XorOp::canonicalize(XorOp op, PatternRewriter &rewriter) {
       SmallVector<Value, 4> newOperands(inputs.drop_back(/*n=*/2));
       newOperands.push_back(cst);
       replaceOpWithNewOpAndCopyName<XorOp>(rewriter, op, op.getType(),
-                                           newOperands, false);
+                                           newOperands, twoState);
       return success();
     }
 
