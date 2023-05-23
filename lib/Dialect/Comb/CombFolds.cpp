@@ -1046,7 +1046,7 @@ LogicalResult AndOp::canonicalize(AndOp op, PatternRewriter &rewriter) {
     }
 
     if (doReplace) {
-      SmallVector<Value, 2> newOperands({subExpr, subExpr});
+      Value newOperands[2] = {subExpr, subExpr};
       replaceOpWithNewOpAndCopyName<XorOp>(rewriter, op, op.getType(),
                                            newOperands, /*twoState=*/false);
       return success();
