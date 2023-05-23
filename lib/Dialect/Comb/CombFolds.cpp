@@ -1261,12 +1261,26 @@ LogicalResult XorOp::canonicalize(XorOp op, PatternRewriter &rewriter) {
   bool twoState = op.getTwoState();
   assert(size > 1 && "expected 2 or more operands");
 
-  // xor(..., x, x) -> xor (...) -- idempotent
-  if (inputs[size - 1] == inputs[size - 2]) {
+  // 2-state: xor(..., x, x) -> xor (...) -- idempotent
+  if (twoState && inputs[size - 1] == inputs[size - 2]) {
     assert(size > 2 &&
            "expected idempotent case for 2 elements handled already.");
     replaceOpWithNewOpAndCopyName<XorOp>(rewriter, op, op.getType(),
                                          inputs.drop_back(/*n=*/2), twoState);
+    return success();
+  }
+
+  // n-state: xor(..., x, x, x) -> xor (..., x, 0) -- idempotent
+  if (!twoState && size > 2 &&
+     inputs[size - 1] == inputs[size - 2] && inputs[size - 1] == inputs[size - 3]) {
+
+    auto width = inputs[size - 3].getType().getIntOrFloatBitWidth(); 
+    auto cst0 = rewriter.create<hw::ConstantOp>(op.getLoc(), APInt::getZero(width));
+    SmallVector<Value, 4> newOperands(inputs.drop_back(/*n=*/2));
+    newOperands.push_back(cst0);
+
+    replaceOpWithNewOpAndCopyName<XorOp>(rewriter, op, op.getType(),
+                                         newOperands, /*twoState=*/ false);
     return success();
   }
 
@@ -1306,8 +1320,7 @@ LogicalResult XorOp::canonicalize(XorOp op, PatternRewriter &rewriter) {
           return success();
 
       // xor(icmp, a, b, 1) -> xor(icmp, a, b) if icmp has one user.
-      if (isSingleBit && operand.hasOneUse()) {
-        assert(value == 1 && "single bit constant has to be one if not zero");
+      if (isSingleBit && value == 1 && operand.hasOneUse()) {
         if (auto icmp = operand.getDefiningOp<ICmpOp>())
           return canonicalizeXorIcmpTrue(op, i, rewriter), success();
       }
