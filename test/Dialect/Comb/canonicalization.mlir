@@ -130,10 +130,20 @@ hw.module @notNot(%a: i1) -> (o: i1) {
 // CHECK-NEXT: hw.output %a
   %c1 = hw.constant 1 : i1
   %0 = comb.xor %a, %c1 : i1
-  %1 = comb.xor %0, %c1 : i1
+  %1 = comb.xor bin %0, %c1 : i1
   hw.output %1 : i1
 }
 
+// CHECK-LABEL: @notNotNState
+hw.module @notNotNState(%a: i1) -> (o: i1) {
+// CHECK-NEXT: %false = hw.constant false
+// CHECK-NEXT: %0 = comb.xor %a, %false : i1
+// CHECK-NEXT: hw.output %0
+  %c1 = hw.constant 1 : i1
+  %0 = comb.xor %a, %c1 : i1
+  %1 = comb.xor %0, %c1 : i1
+  hw.output %1 : i1
+}
 
 // CHECK-LABEL: @andCancel
 hw.module @andCancel(%a: i4, %b : i4) -> (o1: i4, o2: i4) {
@@ -141,8 +151,8 @@ hw.module @andCancel(%a: i4, %b : i4) -> (o1: i4, o2: i4) {
 // CHECK-NEXT: hw.output %c0_i4, %c0_i4 : i4, i4
   %c1 = hw.constant 15 : i4
   %anot = comb.xor %a, %c1 : i4
-  %1 = comb.and %a, %anot : i4
-  %2 = comb.and %b, %a, %b, %anot, %b : i4
+  %1 = comb.and bin %a, %anot : i4
+  %2 = comb.and bin %b, %a, %b, %anot, %b : i4
   hw.output %1, %2 : i4, i4
 }
 
@@ -161,13 +171,13 @@ hw.module @idempotentDeduped1(%arg0: i7, %arg1: i7) -> (resAnd: i7, resOr: i7) {
 
 // CHECK-LABEL: hw.module @idempotentDeduped2(%arg0: i7, %arg1: i7)
 hw.module @idempotentDeduped2(%arg0: i7, %arg1: i7) -> (resAnd: i7, resOr: i7) {
-// CHECK-NEXT:    %0 = comb.and %arg0, %arg1 : i7
-// CHECK-NEXT:    %1 = comb.or %arg0, %arg1 : i7
+// CHECK-NEXT:    %0 = comb.and bin %arg0, %arg1 : i7
+// CHECK-NEXT:    %1 = comb.or bin %arg0, %arg1 : i7
 // CHECK-NEXT:    hw.output %0, %1 : i7, i7
   %0 = comb.and %arg0, %arg0: i7
-  %1 = comb.and %0, %arg1: i7
+  %1 = comb.and bin %0, %arg1: i7
   %2 = comb.or %arg0, %arg0: i7
-  %3 = comb.or %0, %arg1: i7
+  %3 = comb.or bin %0, %arg1: i7
   hw.output %1, %3 : i7, i7
 }
 
@@ -190,7 +200,7 @@ hw.module @orExclusiveConcats(%arg0: i6, %arg1: i2) -> (o: i9) {
   %0 = comb.concat %c0, %arg0 : i3, i6
   %c1 = hw.constant 0 : i7
   %1 = comb.concat %arg1, %c1 : i2, i7
-  %2 = comb.or %0, %1 : i9
+  %2 = comb.or bin %0, %1 : i9
   hw.output %2 : i9
 }
 
@@ -211,7 +221,7 @@ hw.module @orExclusiveConcats2(%arg0: i6, %arg1: i2, %arg2: i2, %arg3: i3) -> (o
   %c3 = hw.constant 0 : i8
   %c4 = hw.constant 0 : i3
   %1 = comb.concat %c3, %arg2, %arg3, %c4 : i8, i2, i3, i3
-  %2 = comb.or %0, %1 : i16
+  %2 = comb.or bin %0, %1 : i16
   hw.output %2 : i16
 }
 
@@ -242,7 +252,7 @@ hw.module @orMultipleExclusiveConcats(%arg0: i2, %arg1: i2, %arg2: i2) -> (o: i6
   %0 = comb.concat %arg0, %c4: i2, i4
   %1 = comb.concat %c2, %arg1, %c2: i2, i2, i2
   %2 = comb.concat %c4, %arg2: i4, i2
-  %out = comb.or %0, %1, %2 : i6
+  %out = comb.or bin %0, %1, %2 : i6
   hw.output %out : i6
 }
 
@@ -258,7 +268,7 @@ hw.module @orConcatsWithMux(%bit: i1, %cond: i1) -> (o: i6) {
   %c3 = hw.constant 0 : i2
   %1 = comb.mux %cond, %c2, %c3 : i2
   %2 = comb.concat %c1, %1 : i4, i2
-  %3 = comb.or %0, %2 : i6
+  %3 = comb.or bin %0, %2 : i6
   hw.output %3 : i6
 }
 
@@ -1199,7 +1209,7 @@ hw.module @orWithNegation(%arg0: i32) -> (o1: i32) {
   // CHECK: [[ALLONES:%.*]] = hw.constant -1 : i32
   %allones = hw.constant -1 : i32
   %0 = comb.xor %arg0, %allones : i32
-  %1 = comb.or %arg0, %0 : i32
+  %1 = comb.or bin %arg0, %0 : i32
 
   // CHECK: hw.output [[ALLONES]]
   hw.output %1 : i32
@@ -1364,15 +1374,15 @@ hw.module @propagateNamehint(%x: i16) -> (o: i1) {
 hw.module @extractToReductionOps(%a: i1, %b: i2) -> (c: i1, d: i1, e: i1) {
   // CHECK-NEXT: %c-1_i2 = hw.constant -1 : i2
   // CHECK-NEXT: %c0_i2 = hw.constant 0 : i2
-  // CHECK-NEXT: %0 = comb.icmp ne %b, %c0_i2 : i2
-  // CHECK-NEXT: %1 = comb.icmp eq %b, %c-1_i2 : i2
-  // CHECK-NEXT: %2 = comb.parity %b : i2
+  // CHECK-NEXT: %0 = comb.icmp bin ne %b, %c0_i2 : i2
+  // CHECK-NEXT: %1 = comb.icmp bin eq %b, %c-1_i2 : i2
+  // CHECK-NEXT: %2 = comb.parity bin %b : i2
   // CHECK-NEXT: hw.output %0, %1, %2 : i1, i1, i1
   %0 = comb.extract %b from 1 : (i2) -> i1
   %1 = comb.extract %b from 0 : (i2) -> i1
-  %2 = comb.or %0, %1 : i1
-  %3 = comb.and %0, %1 : i1
-  %4 = comb.xor %0, %1 : i1
+  %2 = comb.or bin %0, %1 : i1
+  %3 = comb.and bin %0, %1 : i1
+  %4 = comb.xor bin %0, %1 : i1
 
   hw.output %2, %3, %4 : i1, i1, i1
 }

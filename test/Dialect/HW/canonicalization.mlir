@@ -432,7 +432,7 @@ hw.module @xor_idempotent(%arg0: i11, %arg1: i11, %arg2: i11) -> (result: i11) {
 
 hw.module @xor_idempotent_two_arguments(%arg0: i11) -> (result: i11) {
   %c0_i11 = hw.constant 0 : i11
-  %0 = comb.xor %arg0, %arg0 : i11
+  %0 = comb.xor bin %arg0, %arg0 : i11
   hw.output %0 : i11
 }
 
@@ -949,16 +949,16 @@ hw.module @issue955() -> (result: i100, a: i100) {
 hw.module @replicate_and_one_bit(%bit: i1) -> (a: i65, b: i8, c: i8) {
   %c-18446744073709551616_i65 = hw.constant -18446744073709551616 : i65
   %0 = comb.replicate %bit : (i1) -> i65
-  %1 = comb.and %0, %c-18446744073709551616_i65 : i65
+  %1 = comb.and bin %0, %c-18446744073709551616_i65 : i65
   // CHECK: [[A:%[0-9]+]] = comb.concat %bit, %c0_i64 : i1, i64
 
   %c4_i8 = hw.constant 4 : i8
   %2 = comb.replicate %bit : (i1) -> i8
-  %3 = comb.and %2, %c4_i8 : i8
+  %3 = comb.and bin %2, %c4_i8 : i8
   // CHECK: [[B:%[0-9]+]] = comb.concat %c0_i5, %bit, %c0_i2 : i5, i1, i2
 
   %c1_i8 = hw.constant 1 : i8
-  %4 = comb.and %2, %c1_i8 : i8
+  %4 = comb.and bin %2, %c1_i8 : i8
   // CHECK: [[C:%[0-9]+]] = comb.concat %c0_i7, %bit : i7, i1
 
   // CHECK: hw.output [[A]], [[B]], [[C]] :

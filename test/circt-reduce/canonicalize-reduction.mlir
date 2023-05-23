@@ -4,7 +4,7 @@
 
 // CHECK-LABEL: hw.module @Foo
 hw.module @Foo(%arg0: i32) -> (out: i32) {
-  %0 = comb.and %arg0, %arg0 : i32
+  %0 = comb.and bin %arg0, %arg0 : i32
   // CHECK: hw.output %arg0 :
   hw.output %0 : i32
 }
