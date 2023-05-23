@@ -865,6 +865,17 @@ LogicalResult AndOp::canonicalize(AndOp op, PatternRewriter &rewriter) {
       return success();
     }
 
+    // n-state: and(a, 1) -> xor(a, 0)
+    if (!twoState && size == 2 && value.isAllOnes()) {
+      SmallVector<Value, 2> newOperands(inputs.drop_back());
+      auto width = op.getType().getIntOrFloatBitWidth();
+      auto cst0 = rewriter.create<hw::ConstantOp>(op.getLoc(), APInt::getZero(width));
+      newOperands.push_back(cst0);
+      replaceOpWithNewOpAndCopyName<XorOp>(rewriter, op, op.getType(),
+                                           newOperands, /*twoState=*/ false);
+      return success();
+    }
+
     // TODO: Combine multiple constants together even if they aren't at the
     // end. and(..., c1, c2) -> and(..., c3) where c3 = c1 & c2 -- constant
     // folding
@@ -1143,6 +1154,17 @@ LogicalResult OrOp::canonicalize(OrOp op, PatternRewriter &rewriter) {
     if ((twoState || size > 2) && value.isZero()) {
       replaceOpWithNewOpAndCopyName<OrOp>(rewriter, op, op.getType(),
                                           inputs.drop_back(), twoState);
+      return success();
+    }
+
+    // n-state: or(a, 0) -> xor(a, 0)
+    if (!twoState && size == 2 && value.isZero()) {
+      SmallVector<Value, 2> newOperands(inputs.drop_back());
+      auto width = op.getType().getIntOrFloatBitWidth();
+      auto cst0 = rewriter.create<hw::ConstantOp>(op.getLoc(), APInt::getZero(width));
+      newOperands.push_back(cst0);
+      replaceOpWithNewOpAndCopyName<XorOp>(rewriter, op, op.getType(),
+                                           newOperands, /*twoState=*/ false);
       return success();
     }
 
