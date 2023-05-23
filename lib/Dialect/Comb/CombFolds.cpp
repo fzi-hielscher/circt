@@ -116,7 +116,8 @@ static inline ComplementMatcher<SubType> m_Complement(const SubType &subExpr) {
 }
 
 template <typename SubType>
-static inline XorIdentityMatcher<SubType> m_XorIdentity(const SubType &subExpr) {
+static inline XorIdentityMatcher<SubType>
+m_XorIdentity(const SubType &subExpr) {
   return XorIdentityMatcher<SubType>(subExpr);
 }
 
@@ -715,8 +716,8 @@ static bool canonicalizeLogicalCstWithConcat(Operation *logicalOp,
   // hard way since we're generic across a family of different ops.
   // Make sure to propagate the twoState attribute of the original op.
   auto createLogicalOp = [&](ArrayRef<Value> operands) -> Value {
-    auto result = createGenericOp(logicalOp->getLoc(), logicalOp->getName(), operands,
-                           rewriter);
+    auto result = createGenericOp(logicalOp->getLoc(), logicalOp->getName(),
+                                  operands, rewriter);
     if (twoState)
       result.getDefiningOp()->setAttr("twoState", rewriter.getUnitAttr());
     return result;
@@ -785,7 +786,7 @@ OpFoldResult AndOp::fold(FoldAdaptor adaptor) {
 
     // and(x, x, x) -> x.  This also handles and(x) -> x.
     if (llvm::all_of(getInputs(),
-                    [&](auto in) { return in == this->getInputs()[0]; }))
+                     [&](auto in) { return in == this->getInputs()[0]; }))
       return getInputs()[0];
 
     // and(..., x, ..., ~x, ...) -> 0
@@ -849,7 +850,9 @@ static Value getCommonOperand(Op op) {
 ///
 /// Example: `and(x, y, x, z)` -> `and(x, y, z)`
 template <typename Op>
-static bool canonicalizeIdempotentInputsAndFlattenXorIdentities(Op op, PatternRewriter &rewriter) {
+static bool
+canonicalizeIdempotentInputsAndFlattenXorIdentities(Op op,
+                                                    PatternRewriter &rewriter) {
   auto inputs = op.getInputs();
   bool twoState = op.getTwoState();
   llvm::SmallSetVector<Value, 8> uniqueInputs;
@@ -857,23 +860,25 @@ static bool canonicalizeIdempotentInputsAndFlattenXorIdentities(Op op, PatternRe
   bool identityReplaced = false;
   for (const auto input : inputs) {
     Value subExpr;
-     if (matchPattern(input, m_XorIdentity(m_Any(&subExpr)))) {
+    if (matchPattern(input, m_XorIdentity(m_Any(&subExpr)))) {
       uniqueInputs.insert(subExpr);
       identityReplaced = true;
-     } else {
+    } else {
       uniqueInputs.insert(input);
-     }
+    }
   }
 
   if (uniqueInputs.size() == 1) {
-    assert((identityReplaced || !twoState) && "expected 2 or more operands, `fold` should handle this");
+    assert((identityReplaced || !twoState) &&
+           "expected 2 or more operands, `fold` should handle this");
     if (!twoState) {
       // Replace op with Xor identity
       auto width = op.getType().getIntOrFloatBitWidth();
-      auto cst0 = rewriter.create<hw::ConstantOp>(op.getLoc(), APInt::getZero(width));
+      auto cst0 =
+          rewriter.create<hw::ConstantOp>(op.getLoc(), APInt::getZero(width));
       Value newOperands[2] = {uniqueInputs[0], cst0};
       replaceOpWithNewOpAndCopyName<XorOp>(rewriter, op, op.getType(),
-                                      newOperands, twoState);
+                                           newOperands, twoState);
       return true;
     } else {
       // Replace op with 'normal' identity
@@ -916,10 +921,11 @@ LogicalResult AndOp::canonicalize(AndOp op, PatternRewriter &rewriter) {
     if (!twoState && size == 2 && value.isAllOnes()) {
       SmallVector<Value, 2> newOperands(inputs.drop_back());
       auto width = op.getType().getIntOrFloatBitWidth();
-      auto cst0 = rewriter.create<hw::ConstantOp>(op.getLoc(), APInt::getZero(width));
+      auto cst0 =
+          rewriter.create<hw::ConstantOp>(op.getLoc(), APInt::getZero(width));
       newOperands.push_back(cst0);
       replaceOpWithNewOpAndCopyName<XorOp>(rewriter, op, op.getType(),
-                                           newOperands, /*twoState=*/ false);
+                                           newOperands, /*twoState=*/false);
       return success();
     }
 
@@ -960,8 +966,10 @@ LogicalResult AndOp::canonicalize(AndOp op, PatternRewriter &rewriter) {
             concatOperands.push_back(replicateOperand);
           } else {
             // Create XorIdentity to retain n-state behaviour
-            auto cst0 = rewriter.create<hw::ConstantOp>(op.getLoc(), APInt::getZero(1));
-            auto xorId = rewriter.create<XorOp>(op.getLoc(), replicateOperand, cst0, /*twoState=*/ false);
+            auto cst0 =
+                rewriter.create<hw::ConstantOp>(op.getLoc(), APInt::getZero(1));
+            auto xorId = rewriter.create<XorOp>(op.getLoc(), replicateOperand,
+                                                cst0, /*twoState=*/false);
             concatOperands.push_back(xorId);
           }
 
@@ -1040,7 +1048,7 @@ LogicalResult AndOp::canonicalize(AndOp op, PatternRewriter &rewriter) {
     if (doReplace) {
       SmallVector<Value, 2> newOperands({subExpr, subExpr});
       replaceOpWithNewOpAndCopyName<XorOp>(rewriter, op, op.getType(),
-                                           newOperands, /*twoState=*/ false);
+                                           newOperands, /*twoState=*/false);
       return success();
     }
   }
@@ -1059,7 +1067,8 @@ LogicalResult AndOp::canonicalize(AndOp op, PatternRewriter &rewriter) {
       auto cmpAgainst =
           rewriter.create<hw::ConstantOp>(op.getLoc(), APInt::getAllOnes(size));
       replaceOpWithNewOpAndCopyName<ICmpOp>(rewriter, op, ICmpPredicate::eq,
-                                            source, cmpAgainst, op.getTwoState());
+                                            source, cmpAgainst,
+                                            op.getTwoState());
       return success();
     }
   }
@@ -1088,7 +1097,7 @@ OpFoldResult OrOp::fold(FoldAdaptor adaptor) {
 
     // or(x, x, x) -> x.  This also handles or(x) -> x
     if (llvm::all_of(getInputs(),
-                    [&](auto in) { return in == this->getInputs()[0]; }))
+                     [&](auto in) { return in == this->getInputs()[0]; }))
       return getInputs()[0];
 
     // or(..., x, ..., ~x, ...) -> -1
@@ -1208,8 +1217,8 @@ static bool canonicalizeOrOfConcatsWithCstOperands(OrOp op, size_t concatIdx1,
                        inputs.begin() + inputs.size());
   newOrOperands.push_back(newOp);
 
-  replaceOpWithNewOpAndCopyName<OrOp>(rewriter, op, op.getType(),
-                                      newOrOperands, twoState);
+  replaceOpWithNewOpAndCopyName<OrOp>(rewriter, op, op.getType(), newOrOperands,
+                                      twoState);
   return true;
 }
 
@@ -1238,10 +1247,11 @@ LogicalResult OrOp::canonicalize(OrOp op, PatternRewriter &rewriter) {
     if (!twoState && size == 2 && value.isZero()) {
       SmallVector<Value, 2> newOperands(inputs.drop_back());
       auto width = op.getType().getIntOrFloatBitWidth();
-      auto cst0 = rewriter.create<hw::ConstantOp>(op.getLoc(), APInt::getZero(width));
+      auto cst0 =
+          rewriter.create<hw::ConstantOp>(op.getLoc(), APInt::getZero(width));
       newOperands.push_back(cst0);
       replaceOpWithNewOpAndCopyName<XorOp>(rewriter, op, op.getType(),
-                                           newOperands, /*twoState=*/ false);
+                                           newOperands, /*twoState=*/false);
       return success();
     }
 
@@ -1369,16 +1379,17 @@ LogicalResult XorOp::canonicalize(XorOp op, PatternRewriter &rewriter) {
   }
 
   // n-state: xor(..., x, x, x) -> xor (..., x, 0) -- idempotent
-  if (!twoState && size > 2 &&
-     inputs[size - 1] == inputs[size - 2] && inputs[size - 1] == inputs[size - 3]) {
+  if (!twoState && size > 2 && inputs[size - 1] == inputs[size - 2] &&
+      inputs[size - 1] == inputs[size - 3]) {
 
-    auto width = inputs[size - 3].getType().getIntOrFloatBitWidth(); 
-    auto cst0 = rewriter.create<hw::ConstantOp>(op.getLoc(), APInt::getZero(width));
+    auto width = inputs[size - 3].getType().getIntOrFloatBitWidth();
+    auto cst0 =
+        rewriter.create<hw::ConstantOp>(op.getLoc(), APInt::getZero(width));
     SmallVector<Value, 4> newOperands(inputs.drop_back(/*n=*/2));
     newOperands.push_back(cst0);
 
     replaceOpWithNewOpAndCopyName<XorOp>(rewriter, op, op.getType(),
-                                         newOperands, /*twoState=*/ false);
+                                         newOperands, /*twoState=*/false);
     return success();
   }
 
@@ -1436,7 +1447,8 @@ LogicalResult XorOp::canonicalize(XorOp op, PatternRewriter &rewriter) {
   // xor(a[0], a[1], ..., a[n]) -> parity(a)
   if (twoState) {
     if (auto source = getCommonOperand(op)) {
-      replaceOpWithNewOpAndCopyName<ParityOp>(rewriter, op, source, /*twoState=*/ true);
+      replaceOpWithNewOpAndCopyName<ParityOp>(rewriter, op, source,
+                                              /*twoState=*/true);
       return success();
     }
   }
