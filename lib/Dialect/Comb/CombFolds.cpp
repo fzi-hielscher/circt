@@ -880,12 +880,11 @@ canonicalizeIdempotentInputsAndFlattenXorIdentities(Op op,
       Value newOperands[2] = {uniqueInputs[0], cst0};
       replaceOpWithNewOpAndCopyName<XorOp>(rewriter, op, op.getType(),
                                            newOperands, twoState);
-      return true;
     } else {
       // Replace op with 'normal' identity
       replaceOpAndCopyName(rewriter, op, uniqueInputs[0]);
-      return true;
     }
+    return true;
   }
 
   if (uniqueInputs.size() < inputs.size() || identityReplaced) {
