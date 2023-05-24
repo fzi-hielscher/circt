@@ -167,9 +167,10 @@ static bool tryFlatteningOperands(Operation *op, PatternRewriter &rewriter) {
     Value result =
         createGenericOp(op->getLoc(), op->getName(), newOperands, rewriter);
 
-    // If the original operation and had the bin flags, propagte
+    // If the original operation and flatten operand have bin flags, propagte
     // the flag to new one.
-    if (op->hasAttrOfType<UnitAttr>("twoState"))
+    if (op->hasAttrOfType<UnitAttr>("twoState") &&
+        flattenOp->hasAttrOfType<UnitAttr>("twoState"))
       result.getDefiningOp()->setAttr("twoState", rewriter.getUnitAttr());
 
     replaceOpAndCopyName(rewriter, op, result);
