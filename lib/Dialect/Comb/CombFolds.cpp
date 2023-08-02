@@ -39,6 +39,38 @@ static TypedAttr getIntAttr(const APInt &value, MLIRContext *context) {
                           value);
 }
 
+static std::optional<APInt> getIntegerValueFromAttribute(Attribute attr) {
+  if (!attr)
+    return {};
+  if (auto intAttr = llvm::dyn_cast<IntegerAttr>(attr))
+    return intAttr.getValue();
+  else if (auto logAttr = llvm::dyn_cast<hw::LogicLiteralAttr>(attr))
+    return logAttr.getIntegerValue();
+  else
+    return {};
+}
+
+static IntegerType getIntegerTypeFromLogicLiteral(hw::LogicLiteralAttr logLit) {
+  if (logLit.getKind() == hw::LogicKind::Two)
+    return llvm::cast<IntegerType>(logLit.getType());
+  
+   hw::LogicType logType = llvm::cast<hw::LogicType>(logLit.getType());
+   return IntegerType::get(logType.getContext(), *logType.getWidth());
+}
+
+template <char C>
+static TypedAttr getFilledLogicAttr(const Type logType) {
+  const auto ltype = hw::type_cast<hw::LogicType>(logType);
+  auto widthOpt = ltype.getWidth();
+  assert (widthOpt.has_value() && "parameterized width constants not supported");
+  return hw::LogicLiteralAttr::get(
+    ltype.getContext(),
+    ltype.getKind(),
+    hw::APLogicConstant::getFilled<C>(*widthOpt),
+    ltype
+  );
+}
+
 /// Flatten concat and mux operands into a vector.
 static void getConcatOperands(Value v, SmallVectorImpl<Value> &result) {
   if (auto concat = v.getDefiningOp<ConcatOp>()) {
@@ -629,7 +661,22 @@ LogicalResult ExtractOp::canonicalize(ExtractOp op, PatternRewriter &rewriter) {
 
 //===----------------------------------------------------------------------===//
 // Associative Variadic operations
+
 //===----------------------------------------------------------------------===//
+static constexpr bool isArithmeticOp(const hw::PEO paramOpcode) {
+  switch(paramOpcode) {
+    case hw::PEO::Add:
+    case hw::PEO::Mul:
+    case hw::PEO::DivS:
+    case hw::PEO::DivU:
+    case hw::PEO::ModS:
+    case hw::PEO::ModU:
+      return true;
+    default:
+      return false;
+  }
+}
+
 
 // Reduce all operands to a single value (either integer constant or parameter
 // expression) if all the operands are constants.
@@ -657,6 +704,51 @@ static Attribute constFoldAssociativeOp(ArrayRef<Attribute> operands,
   }
 
   return {};
+}
+
+static Attribute constFoldNValuedArithAssociativeOp(ArrayRef<Attribute> operands,
+                                        hw::PEO paramOpcode, Type resultType) {
+    assert(isArithmeticOp(paramOpcode) && "Not an arithmetic op");
+
+    assert(operands.size() > 1 && "caller should handle one-operand case");
+  // We can only fold anything in the case where all operands are known to be
+  // constants.  Check the least common one first for an early out.
+  if (!operands[1] || !operands[0])
+    return {};
+
+  if (llvm::any_of(operands.drop_front(2),
+                   [&](Attribute in) { return !in; })) {
+      return {};
+  } 
+
+  // Get the type we are dealing with
+  const auto op0Attr = operands[0].dyn_cast<hw::LogicLiteralAttr>();
+  if (!op0Attr)
+    return {};
+
+  IntegerType intType = getIntegerTypeFromLogicLiteral(op0Attr);
+
+  // Painstakingly convert all logic attributes to integer attributes ...
+  SmallVector<mlir::TypedAttr> typedOperands;
+  typedOperands.reserve(operands.size());
+  for (auto operand : operands) {
+    auto logLit = operand.dyn_cast<hw::LogicLiteralAttr>();
+    if (!logLit)
+      return {};
+    assert(logLit.getLogicValue().isIntegerLike() && "unknown values should have been handled earlier");
+    TypedAttr intAttr = IntegerAttr::get(intType, logLit.getLogicValue().toAPInt());
+    typedOperands.push_back(intAttr);    
+  }
+
+  auto foldedAttr = hw::ParamExprAttr::get(paramOpcode, typedOperands);
+  
+  // ... and convert back to logic attribute.  
+   const hw::APLogicConstant resultConst(foldedAttr.cast<IntegerAttr>().getValue());
+   return hw::LogicLiteralAttr::get(
+    op0Attr.getContext(),
+    op0Attr.getKind(),
+    resultConst,
+    resultType);
 }
 
 /// When we find a logical operation (and, or, xor) with a constant e.g.
@@ -1476,21 +1568,43 @@ OpFoldResult MulOp::fold(FoldAdaptor adaptor) {
   // mul(x) -> x -- noop
   if (size == 1u)
     return getInputs()[0];
-
-  auto width = getType().cast<IntegerType>().getWidth();
-  APInt value(/*numBits=*/width, 1, /*isSigned=*/false);
-
-  // mul(x, 0, 1) -> 0 -- annulment
+  const bool isTwoState = hw::isTwoStateLogicType(getType());
+  bool hasZeroLikeOperand = false;
+  bool hasUnknownConstOperand = false;
+  bool hasVariableOperand = false;  
+  
   for (auto operand : inputs) {
-    if (!operand)
+    if (!operand) {
+      hasVariableOperand = true;
       continue;
-    value *= operand.cast<IntegerAttr>().getValue();
-    if (value.isZero())
-      return getIntAttr(value, getContext());
+    }
+
+    if (isTwoState) {  
+      // mul(a, 0, 1) -> 0 -- annulment
+      if (getIntegerValueFromAttribute(operand)->isZero()) {
+        return operand;
+      }
+    } else {
+      auto logAttr = llvm::cast<hw::LogicLiteralAttr>(operand);
+      if (!hasZeroLikeOperand && logAttr.getLogicValue().isZeroLike())
+        hasZeroLikeOperand = true;
+      if (!hasUnknownConstOperand && logAttr.getLogicValue().containsUnknownValues())
+        hasUnknownConstOperand = true;
+    }
   }
 
   // Constant fold
-  return constFoldAssociativeOp(inputs, hw::PEO::Mul);
+  if (isTwoState) {
+    return constFoldAssociativeOp(inputs, hw::PEO::Mul);
+  } else {
+    // mul(a, 'X, ...) -> 'X 
+    if (hasUnknownConstOperand)
+      return getFilledLogicAttr<'X'>(getType());
+    // mul(cst, 0) -> 0 , but not mul(a, 0) -> 0
+    if (hasZeroLikeOperand && !hasVariableOperand)
+      return getFilledLogicAttr<'0'>(getType());
+    return constFoldNValuedArithAssociativeOp(inputs, hw::PEO::Mul, getType());
+  }
 }
 
 LogicalResult MulOp::canonicalize(MulOp op, PatternRewriter &rewriter) {

@@ -28,6 +28,8 @@
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/StringSet.h"
 
+#include <cctype>
+
 using namespace circt;
 using namespace hw;
 using mlir::TypedAttr;
@@ -366,6 +368,103 @@ void ConstantOp::getAsmResultNames(
 OpFoldResult ConstantOp::fold(FoldAdaptor adaptor) {
   assert(adaptor.getOperands().empty() && "constant has no operands");
   return getValueAttr();
+}
+
+//===----------------------------------------------------------------------===//
+// LogicConstantOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult LogicConstantOp::verify() {
+  if (getValue().getType() != getType())
+    return emitError("hw.logconst attribute type doesn't match return type");
+
+  return success();
+}
+
+OpFoldResult LogicConstantOp::fold(FoldAdaptor adaptor) {
+  assert(adaptor.getOperands().empty() && "constant has no operands");
+  auto valueAttribute = getValueAttr();
+  if (llvm::isa<LogicType>(valueAttribute.getType())) {
+    return valueAttribute;
+  } else {
+    // Convert binary-kind attibute to integer attribute
+    assert(valueAttribute.getKind() == LogicKind::Two && "non-binary logic attribute must wrap a LogicType");
+    return IntegerAttr::get(valueAttribute.getType(), valueAttribute.getLogicValue().asAPInt());
+  }
+}
+
+LogicalResult LogicConstantOp::inferReturnTypes(
+    MLIRContext *context, std::optional<Location> loc, ValueRange operands,
+    DictionaryAttr attrs, mlir::OpaqueProperties properties,
+    mlir::RegionRange regions, SmallVectorImpl<Type> &results) {
+  auto valueAttr = attrs.getAs<LogicLiteralAttr>("value");
+  if (!hw::type_isa<LogicType, IntegerType>(valueAttr.getType()))
+    return failure();
+  results.push_back(valueAttr.getType());
+  return success();
+}
+
+void LogicConstantOp::getAsmResultNames(
+    function_ref<void(Value, StringRef)> setNameFn) {
+    
+    auto kindString = stringifyEnum(getValue().getKind()).lower();
+    const APLogicConstant& constVal = getValue().getLogicValue();
+
+    SmallVector<char, 32> specialNameBuffer;
+    llvm::raw_svector_ostream specialName(specialNameBuffer);
+
+    if (constVal.getBitWidth() == 1) {
+      if (constVal.isInteger()) {
+        if (constVal.isZero())
+          specialName << "false" << "_" << kindString;
+        else
+          specialName << "true" << "_" << kindString;
+      } else {
+        char valChar = APLogic(constVal).toString()[0];
+        valChar = tolower(valChar);
+        if (getValue().getKind() == LogicKind::Three && valChar == 'x') {
+          const char txStr[8] = {116,119,105,116,116,101,114,0};
+          specialName << txStr;
+        } else {
+          specialName << "c" << valChar  << "_" << kindString;
+        }
+      }
+      setNameFn(getResult(), specialName.str());
+    } else if (constVal.isInteger()) {
+      specialName  << "c" << constVal.asAPInt() << "_" << kindString << constVal.getBitWidth();
+      setNameFn(getResult(), specialName.str());
+    }
+  }
+
+//===----------------------------------------------------------------------===//
+// LogicCastOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult LogicCastOp::verify() {
+  // Ensure widths of input and result are identical
+  std::optional<unsigned> resultWidth = getLogicBitWidth(getResult().getType());
+  std::optional<unsigned> inputWidth = getLogicBitWidth(getInput().getType());
+
+  if (resultWidth && inputWidth && (*resultWidth == *inputWidth))
+    return success();
+  else if (!resultWidth && !inputWidth) {
+    // Input and result are parameterized-width logic type
+    auto logResult = hw::type_cast<LogicType>(getResult().getType());
+    auto logInput = hw::type_cast<LogicType>(getInput().getType());
+    if (logResult.getWidthAttr() == logInput.getWidthAttr())
+      return success();
+  }
+
+  emitError("width of cast input and result must be equal");
+  return failure();
+}
+
+OpFoldResult LogicCastOp::fold(FoldAdaptor adaptor) {
+  // Remove casts to same type
+  if (getCanonicalType(getInput().getType()) ==
+      getCanonicalType(getResult().getType()))
+    return getInput();
+  return {};
 }
 
 //===----------------------------------------------------------------------===//

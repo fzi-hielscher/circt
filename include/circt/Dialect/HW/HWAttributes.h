@@ -12,12 +12,15 @@
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributeInterfaces.h"
 #include "mlir/IR/BuiltinAttributes.h"
+#include "circt/Dialect/HW/HWAPLogic.h"
 
 namespace circt {
 namespace hw {
 class PEOAttr;
 class EnumType;
 enum class PEO : uint32_t;
+enum class LogicKind : uint32_t;
+class LogicType;
 
 // Forward declaration.
 class GlobalRefOp;

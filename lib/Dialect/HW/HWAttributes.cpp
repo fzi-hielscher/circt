@@ -13,11 +13,13 @@
 #include "circt/Support/LLVM.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/DialectImplementation.h"
+#include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Path.h"
+#include "llvm/Support/SMLoc.h"
 
 using namespace circt;
 using namespace circt::hw;
@@ -38,7 +40,7 @@ void HWDialect::registerAttributes() {
   addAttributes<
 #define GET_ATTRDEF_LIST
 #include "circt/Dialect/HW/HWAttributes.cpp.inc"
-      >();
+  >();
 }
 
 Attribute HWDialect::parseAttribute(DialectAsmParser &p, Type type) const {
@@ -998,6 +1000,14 @@ FailureOr<Type> hw::evaluateParametricType(Location loc, ArrayAttr parameters,
         // Otherwise parameter references are still involved
         return hw::IntType::get(evaluatedWidth->cast<TypedAttr>());
       })
+      .Case<hw::LogicType>([&](hw::LogicType t) -> FailureOr<Type> {
+        auto evaluatedWidth =
+            evaluateParametricAttr(loc, parameters, t.getWidthAttr());
+        if (failed(evaluatedWidth))
+          return {failure()};
+
+        return LogicType::get(t.getKind(), *evaluatedWidth);
+      })
       .Case<hw::ArrayType>([&](hw::ArrayType arrayType) -> FailureOr<Type> {
         auto size =
             evaluateParametricAttr(loc, parameters, arrayType.getSizeAttr());
@@ -1043,3 +1053,147 @@ bool hw::isParametricType(mlir::Type t) {
       })
       .Default([](auto) { return false; });
 }
+
+// -----------------
+// LogicLiteralAttr
+// -----------------
+
+LogicLiteralAttr LogicLiteralAttr::get(::mlir::MLIRContext *context,
+                                       circt::hw::LogicKind kind,
+                                       ::circt::hw::APLogicConstant logconst,
+                                        ::mlir::Type type) {
+    Type selfType = type;
+    auto noneType = NoneType::get(context);
+    if (!selfType || (selfType == noneType)) {
+      selfType = LogicType::get(context, kind, logconst.getBitWidth());
+    }
+    return Base::get(context, kind, logconst, selfType);
+}
+
+
+Attribute LogicLiteralAttr::parse(::mlir::AsmParser &odsParser, ::mlir::Type odsType) {
+
+  std::variant<NoneType, LogicType, IntegerType> parsedType;
+
+  ::mlir::FailureOr<circt::hw::LogicKind> kindParseResult;
+  LogicKindAttr kind;
+//  std::optional<unsigned> parsedWidthOpt;
+  std::optional<unsigned> typeWidthOpt;
+
+  auto noneType = NoneType::get(odsParser.getContext());
+  if (!odsType || odsType == noneType)
+    parsedType = noneType;
+  else if (auto logType = hw::type_dyn_cast<LogicType>(odsType)) {
+    parsedType = logType;
+    typeWidthOpt = logType.getWidth();
+  } else if (auto intType = hw::type_dyn_cast<IntegerType>(odsType)) {
+    parsedType = intType;
+    typeWidthOpt = intType.getWidth();
+  } else {
+    odsParser.emitError(odsParser.getCurrentLocation(),
+      "selftype of logic literal must be IntegerType or LogicType");
+    return {};
+  }
+  
+  if (odsParser.parseLess())
+    return {};
+
+
+
+  kindParseResult = mlir::FieldParser<circt::hw::LogicKind>::parse(odsParser);
+  if (failed(kindParseResult)) {
+    odsParser.emitError(odsParser.getCurrentLocation(),
+     "failed to parse LogicLiteralAttr parameter 'kind' which is to be a `circt::hw::LogicKind`");
+    return {};
+  }
+
+  if (auto *logType = std::get_if<LogicType>(&parsedType)) {
+    if (logType->getKind() != *kindParseResult) {
+      odsParser.emitError(odsParser.getCurrentLocation(),
+      "specified logic kind does not match selftype");
+      return {};
+    }
+  } else if (std::holds_alternative<IntegerType>(parsedType)) {
+    if (*kindParseResult != LogicKind::Two) {
+       odsParser.emitError(odsParser.getCurrentLocation(),
+        "specified logic kind does not match selftype");
+      return {};     
+    }
+  }
+
+  if (odsParser.parseComma())
+    return {};
+
+  std::string stringLit;
+  auto errorPtr = odsParser.getCurrentLocation().getPointer();
+
+  if (succeeded(odsParser.parseOptionalString(&stringLit))) {
+
+    if (stringLit.size() == 0) {
+      odsParser.emitError(llvm::SMLoc::getFromPointer(errorPtr),
+            "zero length logic literals not allowed");
+      return {}; 
+    }
+
+    auto matchLen = LogicType::checkLiteral(stringLit, *kindParseResult);
+    if (matchLen < stringLit.size()) {
+      errorPtr += matchLen + 1;
+      odsParser.emitError(llvm::SMLoc::getFromPointer(errorPtr),
+            "logic literal contains invalid character for specified kind");
+      return {}; 
+    }
+
+    if (typeWidthOpt.has_value() && (*typeWidthOpt != stringLit.size()))  {
+      odsParser.emitError(odsParser.getCurrentLocation(),
+      "length of string literal does not match self type");
+      return {};
+    }
+
+    if (odsParser.parseGreater())
+      return {};
+
+    APLogic apl(stringLit);
+    return LogicLiteralAttr::get(odsParser.getContext(), *kindParseResult, APLogicConstant(apl), odsType);    
+  }
+
+  IntegerAttr valAttr;
+  if (odsParser.parseAttribute(valAttr))
+    return {};
+
+    APInt apint = valAttr.getValue();
+
+    if (apint.getBitWidth() == 0) {
+      odsParser.emitError(llvm::SMLoc::getFromPointer(errorPtr),
+            "zero length logic literals not allowed");
+      return {}; 
+    }
+
+    if (typeWidthOpt.has_value() && (*typeWidthOpt != apint.getBitWidth()))  {
+      odsParser.emitError(odsParser.getCurrentLocation(),
+      "width of integer attribute does not match self type");
+      return {};
+    }
+
+    if (odsParser.parseGreater())
+      return {};
+
+     return LogicLiteralAttr::get(odsParser.getContext(), *kindParseResult, APLogicConstant(apint), odsType);
+
+}
+
+void LogicLiteralAttr::print(::mlir::AsmPrinter &odsPrinter) const {
+  auto logConst = getLogicValue();
+  odsPrinter << "<" << stringifyEnum(getKind()) << ", ";
+  if (!logConst.isInteger()) {
+    odsPrinter << "\"" << APLogic(logConst).toString() << "\"";
+  } else {
+    llvm::SmallString<16> intStr;
+    llvm::APInt apint = logConst.asAPInt();
+    IntegerType intType = IntegerType::get(getContext(), apint.getBitWidth());
+    apint.toStringSigned(intStr);
+    odsPrinter << intStr << " : ";
+    odsPrinter.printType(intType);    
+  }
+  odsPrinter << ">";
+}
+

@@ -45,6 +45,11 @@ Operation *CombDialect::materializeConstant(OpBuilder &builder, Attribute value,
   if (auto intType = type.dyn_cast<IntegerType>())
     if (auto attrValue = value.dyn_cast<IntegerAttr>())
       return builder.create<hw::ConstantOp>(loc, type, attrValue);
+  
+  // Logic constants can materialize into hw.logconst
+  if (auto logType = type.dyn_cast<hw::LogicType>())
+     if (auto attrValue = value.dyn_cast<hw::LogicLiteralAttr>())
+      return builder.create<hw::LogicConstantOp>(loc, type, attrValue);
 
   // Parameter expressions materialize into hw.param.value.
   auto parentOp = builder.getBlock()->getParentOp();

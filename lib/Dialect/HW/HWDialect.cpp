@@ -95,6 +95,11 @@ Operation *HWDialect::materializeConstant(OpBuilder &builder, Attribute value,
     if (auto attrValue = value.dyn_cast<IntegerAttr>())
       return builder.create<ConstantOp>(loc, type, attrValue);
 
+  // Logic constants can materialize into hw.logconst
+  if (auto logType = type.dyn_cast<LogicType>())
+     if (auto attrValue = value.dyn_cast<LogicLiteralAttr>())
+      return builder.create<LogicConstantOp>(loc, type, attrValue);
+
   // Aggregate constants.
   if (auto arrayAttr = value.dyn_cast<ArrayAttr>()) {
     if (type.isa<StructType, ArrayType, UnpackedArrayType>())

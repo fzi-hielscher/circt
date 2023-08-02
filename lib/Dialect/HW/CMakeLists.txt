@@ -1,5 +1,7 @@
 set(CIRCT_HW_Sources
   CustomDirectiveImpl.cpp
+  HWAPLogic.cpp
+  HWAPLogicConstant.cpp
   HWAttributes.cpp
   HWDialect.cpp
   HWInstanceGraph.cpp
