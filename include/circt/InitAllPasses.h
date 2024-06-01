@@ -33,6 +33,7 @@
 #include "circt/Dialect/SSP/SSPPasses.h"
 #include "circt/Dialect/SV/SVPasses.h"
 #include "circt/Dialect/Seq/SeqPasses.h"
+#include "circt/Dialect/Sim/SimPasses.h"
 #include "circt/Dialect/SystemC/SystemCPasses.h"
 #include "circt/Dialect/Verif/VerifPasses.h"
 #include "circt/Tools/circt-lec/Passes.h"
@@ -62,6 +63,7 @@ inline void registerAllPasses() {
   msft::registerPasses();
   om::registerPasses();
   seq::registerPasses();
+  sim::registerPasses();
   sv::registerPasses();
   handshake::registerPasses();
   ibis::registerPasses();

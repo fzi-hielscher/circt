@@ -121,6 +121,7 @@ struct ModuleLowering {
   LogicalResult lowerState(MemoryOp memOp);
   LogicalResult lowerState(MemoryWritePortOp memWriteOp);
   LogicalResult lowerState(TapOp tapOp);
+  LogicalResult lowerState(TriggeredOp trigOp);
   LogicalResult lowerExtModules(SymbolTable &symtbl);
   LogicalResult lowerExtModule(InstanceOp instOp);
 
@@ -253,6 +254,7 @@ Value ClockLowering::getOrCreateOr(Value lhs, Value rhs, Location loc) {
 //===----------------------------------------------------------------------===//
 
 GatedClockLowering ModuleLowering::getOrCreateClockLowering(Value clock) {
+
   // Look through clock gates.
   if (auto ckgOp = clock.getDefiningOp<seq::ClockGateOp>()) {
     // Reuse the existing lowering for this clock gate if possible.
@@ -390,18 +392,47 @@ LogicalResult ModuleLowering::lowerPrimaryOutputs() {
 LogicalResult ModuleLowering::lowerStates() {
   SmallVector<Operation *> opsToLower;
   for (auto &op : *moduleOp.getBodyBlock())
-    if (isa<StateOp, MemoryOp, MemoryWritePortOp, TapOp>(&op))
+    if (isa<StateOp, MemoryOp, MemoryWritePortOp, TapOp, TriggeredOp>(&op))
       opsToLower.push_back(&op);
 
   for (auto *op : opsToLower) {
     LLVM_DEBUG(llvm::dbgs() << "- Lowering " << *op << "\n");
-    auto result = TypeSwitch<Operation *, LogicalResult>(op)
-                      .Case<StateOp, MemoryOp, MemoryWritePortOp, TapOp>(
-                          [&](auto op) { return lowerState(op); })
-                      .Default(success());
+    auto result =
+        TypeSwitch<Operation *, LogicalResult>(op)
+            .Case<StateOp, MemoryOp, MemoryWritePortOp, TapOp, TriggeredOp>(
+                [&](auto op) { return lowerState(op); })
+            .Default(success());
     if (failed(result))
       return failure();
   }
+  return success();
+}
+
+LogicalResult ModuleLowering::lowerState(TriggeredOp trigOp) {
+  if (trigOp.getEvent() != hw::EventControl::AtPosEdge)
+    return trigOp.emitError("Arc lowering only supports posedge events.");
+
+  // hw::TriggeredOp takes an i1 trigger, but we want a seq.clock.
+  OpBuilder seqClockBuilder(trigOp);
+  // Let's hope this just folds to the original clock.
+  auto seqClock = seqClockBuilder.createOrFold<seq::ToClockOp>(
+      trigOp.getLoc(), trigOp.getTrigger());
+  auto info = getOrCreateClockLowering(seqClock);
+
+  // hw::TriggeredOp is isolated from above, so just remap the arugments and
+  // hoist the inner ops out.
+  for (auto [arg, input] :
+       llvm::zip(trigOp.getBodyRegion().getArguments(), trigOp.getInputs())) {
+    auto materializedInput = info.clock.materializeValue(input);
+    arg.replaceAllUsesWith(materializedInput);
+  }
+
+  for (auto &op :
+       llvm::make_early_inc_range(trigOp.getBodyBlock()->getOperations()))
+    op.moveBefore(info.clock.builder.getInsertionBlock(),
+                  info.clock.builder.getInsertionPoint());
+
+  trigOp.erase();
   return success();
 }
 

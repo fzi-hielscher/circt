@@ -1,11 +1,58 @@
 // NOLINTBEGIN
 #pragma once
 #include <array>
+#include <cstdarg>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <functional>
 #include <ostream>
 #include <vector>
+
+static_assert(sizeof(int) == 4, "Unsupported ABI");
+static_assert(sizeof(long long) == 8, "Unsupported ABI");
+
+// ---  Exports to the IR ---
+
+#ifdef _MSC_VER
+#define ARCEXPORT(rtype) extern "C" __declspec(dllexport) rtype __cdecl
+#else
+#define ARCEXPORT(rtype) extern "C" rtype
+#endif
+
+// STL adapters
+
+ARCEXPORT(int) _arc_stl_fprintf(FILE *stream, const char *format, ...) {
+  int result;
+  va_list args;
+  va_start(args, format);
+  result = vfprintf(stream, format, args);
+  va_end(args);
+  return result;
+}
+
+ARCEXPORT(int) _arc_stl_fputs(const char *str, FILE *stream) {
+  return fputs(str, stream);
+}
+
+ARCEXPORT(int) _arc_stl_fputc(int ch, FILE *stream) {
+  return fputc(ch, stream);
+}
+
+// Environment calls
+
+#define ARC_ENV_DECL_GET_PRINT_STREAM(idarg)                                   \
+  ARCEXPORT(FILE *) _arc_env_get_print_stream(uint32_t idarg)
+#ifndef ARC_NO_DEFAULT_GET_PRINT_STREAM
+
+ARC_ENV_DECL_GET_PRINT_STREAM(id) {
+  (void)id;
+  return stderr;
+}
+
+#endif
+
+// ----------
 
 struct Signal {
   const char *name;

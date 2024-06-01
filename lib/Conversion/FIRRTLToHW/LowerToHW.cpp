@@ -39,6 +39,7 @@
 #include "mlir/IR/ImplicitLocOpBuilder.h"
 #include "mlir/IR/Threading.h"
 #include "mlir/Pass/Pass.h"
+#include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/TinyPtrVector.h"
 #include "llvm/Support/Debug.h"
@@ -1410,6 +1411,7 @@ struct FIRRTLLowering : public FIRRTLVisitor<FIRRTLLowering, LogicalResult> {
   Attribute getOrCreateAggregateConstantAttribute(Attribute value, Type type);
   Value getOrCreateXConstant(unsigned numBits);
   Value getOrCreateZConstant(Type type);
+  Value getOrCreatePrintfLiteral(StringRef str);
   Value getPossiblyInoutLoweredValue(Value value);
   Value getLoweredValue(Value value);
   Value getLoweredNonClockValue(Value value);
@@ -1720,6 +1722,9 @@ private:
   DenseMap<unsigned, Value> hwConstantXMap;
   DenseMap<Type, Value> hwConstantZMap;
 
+  /// Cache for printf stirng literal tokens.
+  llvm::StringMap<Value> printLitMap;
+
   /// We auto-unique "ReadInOut" ops from wires and regs, enabling
   /// optimizations and CSEs of the read values to be more obvious.  This
   /// caches a known ReadInOutOp for the given value and is managed by
@@ -2002,6 +2007,17 @@ Value FIRRTLLowering::getOrCreateZConstant(Type type) {
   if (!entry) {
     OpBuilder entryBuilder(&theModule.getBodyBlock()->front());
     entry = entryBuilder.create<sv::ConstantZOp>(builder.getLoc(), type);
+  }
+  return entry;
+}
+
+Value FIRRTLLowering::getOrCreatePrintfLiteral(StringRef str) {
+  auto &entry = printLitMap[str];
+  if (!entry) {
+    OpBuilder entryBuilder(&theModule.getBodyBlock()->front());
+    entry = entryBuilder.create<sim::FormatLitOp>(
+        builder.getLoc(), sim::FormatStringType::get(builder.getContext()),
+        builder.getStringAttr(str));
   }
   return entry;
 }
@@ -4328,10 +4344,8 @@ LogicalResult FIRRTLLowering::visitStmt(RefReleaseInitialOp op) {
   return success();
 }
 
-// Printf is a macro op that lowers to an sv.ifdef.procedural, an sv.if,
-// and an sv.fwrite all nested together.
 LogicalResult FIRRTLLowering::visitStmt(PrintFOp op) {
-  auto clock = getLoweredNonClockValue(op.getClock());
+  auto clock = getLoweredValue(op.getClock());
   auto cond = getLoweredValue(op.getCond());
   if (!clock || !cond)
     return failure();
@@ -4339,30 +4353,107 @@ LogicalResult FIRRTLLowering::visitStmt(PrintFOp op) {
   SmallVector<Value, 4> operands;
   operands.reserve(op.getSubstitutions().size());
   for (auto operand : op.getSubstitutions()) {
-    Value loweredValue = getLoweredFmtOperand(operand);
+    Value loweredValue = getLoweredValue(operand);
     if (!loweredValue)
       return failure();
     operands.push_back(loweredValue);
   }
 
-  // Emit an "#ifndef SYNTHESIS" guard into the always block.
+  SmallVector<Value> tokens;
+  tokens.reserve(1 + 2 * op.getSubstitutions().size());
+  auto fmtStr = op.getFormatString().str();
+
+  auto fmtStrType = sim::FormatStringType::get(builder.getContext());
+
+  size_t pos = 0;
+  size_t skip = 0;
+  size_t substIndex = 0;
+
+  // Split the format string into a list of tokens which are either string
+  // literals or formatting substitutions.
+  while (pos < fmtStr.size()) {
+    // Look for the next substitution.
+    auto substPos = fmtStr.find('%', pos + skip);
+
+    if (substPos == std::string::npos) {
+      // No more substitutions. Create a literal for the remaining string.
+      auto tailToken = fmtStr.substr(pos, fmtStr.size() - pos);
+      auto lit = getOrCreatePrintfLiteral(tailToken);
+      tokens.push_back(lit);
+      break;
+    }
+
+    // '%' at the last position?
+    if (substPos == fmtStr.size() - 1)
+      return op.emitError("Incomplete substitution in format string");
+
+    char fmtChar = fmtStr[substPos + 1];
+
+    // "%%" is not really a substitution. Remove one '%' and continue searching
+    // beyond it.
+    if (fmtChar == '%') {
+      fmtStr.erase(substPos, 1);
+      skip = substPos + 1 - pos;
+      continue;
+    }
+
+    // Found an actual substitution. Create a literal for the preceeding string
+    // first.
+    if (substPos > pos) {
+      auto tailToken = fmtStr.substr(pos, substPos - pos);
+      auto lit = getOrCreatePrintfLiteral(tailToken);
+      tokens.push_back(lit);
+    }
+
+    // Then create the matching substitution token.
+    assert(substIndex < operands.size() &&
+           "Found more substitutions than operands.");
+    Value substToken;
+    if (fmtChar == 'x')
+      substToken = builder.createOrFold<sim::FormatHexOp>(fmtStrType,
+                                                          operands[substIndex]);
+    else if (fmtChar == 'd')
+      substToken = builder.createOrFold<sim::FormatDecOp>(
+          fmtStrType, operands[substIndex],
+          type_cast<IntType>(op.getSubstitutions()[substIndex].getType())
+              .isSigned());
+    else if (fmtChar == 'b')
+      substToken = builder.createOrFold<sim::FormatBinOp>(fmtStrType,
+                                                          operands[substIndex]);
+    // Note: %c substitutions are not defined in the FIRRTL spec, but Chisel
+    // allows them.
+    else if (fmtChar == 'c')
+      substToken = builder.createOrFold<sim::FormatCharOp>(
+          fmtStrType, operands[substIndex]);
+    else
+      return op.emitError("Invalid substitution in format string: %" +
+                          Twine(fmtChar));
+
+    tokens.push_back(substToken);
+    substIndex++;
+
+    skip = 0;
+    pos = substPos + 2;
+  }
+  assert(!tokens.empty() && "No formatting tokens created");
+
+  Value combinedStrings;
+  if (tokens.size() > 1)
+    combinedStrings =
+        builder.createOrFold<sim::FormatStringConcatOp>(fmtStrType, tokens);
+  else
+    combinedStrings = tokens.front();
+
+  // Create the lowered print operation within ifdef guards.
   circuitState.addMacroDecl(builder.getStringAttr("SYNTHESIS"));
+  circuitState.usedPrintfCond = true;
+  circuitState.addFragment(theModule, "PRINTF_COND_FRAGMENT");
+
   addToIfDefBlock("SYNTHESIS", std::function<void()>(), [&]() {
-    addToAlwaysBlock(clock, [&]() {
-      circuitState.usedPrintfCond = true;
-      circuitState.addFragment(theModule, "PRINTF_COND_FRAGMENT");
-
-      // Emit an "sv.if '`PRINTF_COND_ & cond' into the #ifndef.
-      Value ifCond =
-          builder.create<sv::MacroRefExprOp>(cond.getType(), "PRINTF_COND_");
-      ifCond = builder.createOrFold<comb::AndOp>(ifCond, cond, true);
-
-      addIfProceduralBlock(ifCond, [&]() {
-        // Emit the sv.fwrite, writing to stderr by default.
-        Value fdStderr = builder.create<hw::ConstantOp>(APInt(32, 0x80000002));
-        builder.create<sv::FWriteOp>(fdStderr, op.getFormatString(), operands);
-      });
-    });
+    Value ifCond =
+        builder.create<sv::MacroRefExprOp>(cond.getType(), "PRINTF_COND_");
+    ifCond = builder.createOrFold<comb::AndOp>(ifCond, cond, true);
+    builder.create<sim::PrintFormattedOp>(clock, combinedStrings, ifCond);
   });
 
   return success();

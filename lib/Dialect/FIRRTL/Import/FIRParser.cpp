@@ -5393,6 +5393,7 @@ FIRCircuitParser::parseModuleBody(const SymbolTable &circuitSymTbl,
     return result;
 
   // Scan for printf-encoded verif's to error on their use, no longer supported.
+  /*
   {
     size_t numVerifPrintfs = 0;
     std::optional<Location> printfLoc;
@@ -5417,7 +5418,7 @@ FIRCircuitParser::parseModuleBody(const SymbolTable &circuitSymTbl,
                            "https://github.com/llvm/circt/issues/6970";
       return diag;
     }
-  }
+  } */
 
   // Demote any forceable operations that aren't being forced.
   deferredModule.moduleOp.walk([](Forceable fop) {

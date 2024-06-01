@@ -8,11 +8,13 @@ add_circt_library(CIRCTFirtool
   CIRCTFIRRTLTransforms
   CIRCTHWToBTOR2
   CIRCTHWTransforms
+  CIRCTHWToSV
   CIRCTLTLToCore
   CIRCTOMTransforms
   CIRCTSeqToSV
   CIRCTSimToSV
   CIRCTSeqTransforms
+  CIRCTSimTransforms
   CIRCTSVTransforms
   CIRCTTransforms
   CIRCTVerifToSV

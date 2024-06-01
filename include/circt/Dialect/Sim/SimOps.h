@@ -17,9 +17,11 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/SymbolTable.h"
 
+#include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/Seq/SeqDialect.h"
 #include "circt/Dialect/Seq/SeqTypes.h"
 #include "circt/Dialect/Sim/SimDialect.h"
+#include "circt/Dialect/Sim/SimTypes.h"
 #include "circt/Support/BuilderUtils.h"
 
 #define GET_OP_CLASSES

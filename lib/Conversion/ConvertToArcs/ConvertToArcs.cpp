@@ -25,7 +25,7 @@ using llvm::MapVector;
 static bool isArcBreakingOp(Operation *op) {
   return op->hasTrait<OpTrait::ConstantLike>() ||
          isa<hw::InstanceOp, seq::CompRegOp, MemoryOp, ClockedOpInterface,
-             seq::ClockGateOp>(op) ||
+             seq::ClockGateOp, hw::TriggeredOp>(op) ||
          op->getNumResults() > 1;
 }
 
@@ -83,7 +83,7 @@ LogicalResult Converter::runOnModule(HWModuleOp module) {
   arcBreakers.clear();
   arcBreakerIndices.clear();
   for (Operation &op : *module.getBodyBlock()) {
-    if (op.getNumRegions() > 0)
+    if (!isa<hw::TriggeredOp>(op) && op.getNumRegions() > 0)
       return op.emitOpError("has regions; not supported by ConvertToArcs");
     if (!isArcBreakingOp(&op) && !isa<hw::OutputOp>(&op))
       continue;

@@ -64,6 +64,10 @@
 
 #include <optional>
 
+#ifdef ARCILATOR_ENABLE_JIT
+#include "arcilator-jit-env.h"
+#endif
+
 using namespace mlir;
 using namespace circt;
 using namespace arc;
@@ -249,6 +253,8 @@ static void populateHwModuleToArcPipeline(PassManager &pm) {
     opts.tapMemories = observeMemories;
     pm.addPass(arc::createInferMemoriesPass(opts));
   }
+  auto &modulePM = pm.nest<hw::HWModuleOp>();
+  modulePM.addPass(circt::sim::createProceduralizeSim());
   pm.addPass(createCSEPass());
   pm.addPass(arc::createArcCanonicalizerPass());
 
@@ -408,6 +414,7 @@ static LogicalResult processBuffer(
 
 #ifdef ARCILATOR_ENABLE_JIT
   // Handle JIT execution.
+
   if (outputFormat == OutputRunJIT) {
     Operation *toCall = module->lookupSymbol(jitEntryPoint);
     if (!toCall) {
@@ -436,6 +443,8 @@ static LogicalResult processBuffer(
         /*optLevel=*/3, /*sizeLevel=*/0,
         /*targetMachine=*/nullptr);
 
+    arc_jit_runtime_env_init();
+
     auto executionEngine =
         mlir::ExecutionEngine::create(module.get(), engineOptions);
     if (!executionEngine) {
@@ -459,6 +468,8 @@ static LogicalResult processBuffer(
 
     void (*simulationFunc)(void **) = *expectedFunc;
     (*simulationFunc)(nullptr);
+
+    arc_jit_runtime_env_deinit();
 
     return success();
   }
@@ -567,6 +578,7 @@ static LogicalResult executeArcilator(MLIRContext &context) {
     mlir::scf::SCFDialect,
     om::OMDialect,
     seq::SeqDialect,
+    sim::SimDialect,
     sv::SVDialect
   >();
   // clang-format on

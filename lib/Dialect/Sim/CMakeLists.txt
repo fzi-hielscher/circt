@@ -11,6 +11,7 @@
 
 add_circt_dialect_library(CIRCTSim
   SimDialect.cpp
+  SimTypes.cpp
   SimOps.cpp
 
   ADDITIONAL_HEADER_DIRS
@@ -28,7 +29,11 @@ add_circt_dialect_library(CIRCTSim
   CIRCTHW
   CIRCTSeq
   CIRCTSV
+  CIRCTArc
   MLIRIR
+  MLIRFuncDialect
   MLIRPass
   MLIRTransforms
 )
+
+add_subdirectory(Transforms)

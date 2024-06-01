@@ -13,6 +13,7 @@
 #include "circt/Dialect/OM/OMDialect.h"
 #include "circt/Dialect/SV/SVOps.h"
 #include "circt/Dialect/Seq/SeqOps.h"
+#include "mlir/IR/IRMapping.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
 #include "mlir/Pass/Pass.h"
 #include "llvm/Support/Debug.h"
@@ -105,12 +106,44 @@ void StripSVPass::runOnOperation() {
     opsToDelete.push_back(verb);
 
   for (auto module : mlirModule.getOps<hw::HWModuleOp>()) {
+
     for (Operation &op : *module.getBodyBlock()) {
-      // Remove ifdefs and verbatim.
-      if (isa<sv::IfDefOp, sv::CoverOp, sv::CoverConcurrentOp>(&op)) {
+
+      if (auto ifDefOp = dyn_cast<sv::IfDefOp>(op)) {
+
+        // Heavy handed hoisting of simulation ops out of their ifdef guards.
+        if (ifDefOp.hasElse()) {
+          auto ident = ifDefOp.getCond().getIdent().getAttr();
+          if (ident.str() == "SYNTHESIS") {
+            OpBuilder builder(ifDefOp);
+
+            for (auto &simOp : llvm::make_early_inc_range(
+                     ifDefOp.getElseBlock()->getOperations())) {
+
+              // Substitute the "PRINTF_COND_" macro with a 'true' constant
+              if (auto macroRefOp = dyn_cast<sv::MacroRefExprOp>(simOp)) {
+                if (macroRefOp.getMacroName().str() == "PRINTF_COND_") {
+                  auto cstTrue = builder.createOrFold<hw::ConstantOp>(
+                      macroRefOp.getLoc(), APInt(1, 1));
+                  macroRefOp.replaceAllUsesWith(cstTrue);
+                  continue;
+                }
+              }
+              if (!isa<emit::EmitDialect, om::OMDialect, sv::SVDialect>(
+                      simOp.getDialect()))
+                simOp.moveBefore(ifDefOp);
+            }
+          }
+        }
+
         opsToDelete.push_back(&op);
         continue;
       }
+      if (isa<sv::CoverOp, sv::CoverConcurrentOp>(&op)) {
+        opsToDelete.push_back(&op);
+        continue;
+      }
+
       if (isa<sv::VerbatimOp, sv::AlwaysOp>(&op)) {
         opsToDelete.push_back(&op);
         continue;

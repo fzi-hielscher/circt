@@ -19,6 +19,7 @@ target_link_libraries(firtool PRIVATE
   CIRCTVerif
   CIRCTSeq
   CIRCTSim
+  CIRCTSimTransforms
   CIRCTSVTransforms
   CIRCTTransforms
   CIRCTFirtool

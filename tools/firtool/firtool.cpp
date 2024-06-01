@@ -33,6 +33,7 @@
 #include "circt/Dialect/SV/SVPasses.h"
 #include "circt/Dialect/Seq/SeqDialect.h"
 #include "circt/Dialect/Sim/SimDialect.h"
+#include "circt/Dialect/Sim/SimPasses.h"
 #include "circt/Dialect/Verif/VerifDialect.h"
 #include "circt/Dialect/Verif/VerifPasses.h"
 #include "circt/Support/LoweringOptions.h"
@@ -712,6 +713,7 @@ int main(int argc, char **argv) {
     om::registerPasses();
     sv::registerPasses();
     hw::registerFlattenModulesPass();
+    sim::registerPasses();
     verif::registerVerifyClockedAssertLikePass();
 
     // Export passes:
