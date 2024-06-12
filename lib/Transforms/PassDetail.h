@@ -48,8 +48,6 @@ namespace comb {
 class CombDialect;
 } // namespace comb
 
-#define GEN_PASS_CLASSES
-#include "circt/Transforms/Passes.h.inc"
 
 } // namespace circt
 

@@ -18,8 +18,6 @@
 namespace circt {
 namespace comb {
 
-#define GEN_PASS_CLASSES
-#include "circt/Dialect/Comb/Passes.h.inc"
 
 } // namespace comb
 } // namespace circt

@@ -26,8 +26,6 @@
 namespace circt {
 namespace systemc {
 
-#define GEN_PASS_CLASSES
-#include "circt/Dialect/SystemC/Passes.h.inc"
 
 } // namespace systemc
 } // namespace circt

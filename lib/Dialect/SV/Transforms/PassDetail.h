@@ -36,8 +36,6 @@ class VerifDialect;
 
 namespace sv {
 
-#define GEN_PASS_CLASSES
-#include "circt/Dialect/SV/SVPasses.h.inc"
 
 } // namespace sv
 } // namespace circt

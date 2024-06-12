@@ -20,9 +20,6 @@
 namespace circt {
 namespace om {
 
-#define GEN_PASS_CLASSES
-#include "circt/Dialect/OM/OMPasses.h.inc"
-
 } // namespace om
 } // namespace circt
 

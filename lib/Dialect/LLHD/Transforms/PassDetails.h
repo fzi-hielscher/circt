@@ -18,8 +18,6 @@
 namespace circt {
 namespace llhd {
 
-#define GEN_PASS_CLASSES
-#include "circt/Dialect/LLHD/Transforms/Passes.h.inc"
 
 } // namespace llhd
 } // namespace circt

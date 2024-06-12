@@ -48,9 +48,6 @@ class DebugDialect;
 
 namespace firrtl {
 
-#define GEN_PASS_CLASSES
-#include "circt/Dialect/FIRRTL/Passes.h.inc"
-
 } // namespace firrtl
 } // namespace circt
 

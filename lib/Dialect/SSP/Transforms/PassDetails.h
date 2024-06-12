@@ -27,8 +27,6 @@
 namespace circt {
 namespace ssp {
 
-#define GEN_PASS_CLASSES
-#include "circt/Dialect/SSP/SSPPasses.h.inc"
 
 } // namespace ssp
 } // namespace circt

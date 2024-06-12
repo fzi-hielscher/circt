@@ -19,10 +19,18 @@
 #include "llvm/Support/Path.h"
 #include "llvm/Support/ToolOutputFile.h"
 
+namespace circt {
+#define GEN_PASS_DEF_EXPORTCHISELINTERFACE
+#define GEN_PASS_DEF_EXPORTSPLITCHISELINTERFACE
+#include "circt/Conversion/Passes.h.inc"
+}
+
 using namespace circt;
 using namespace firrtl;
 
 #define DEBUG_TYPE "export-chisel-package"
+
+
 
 //===----------------------------------------------------------------------===//
 // Interface emission logic
@@ -279,7 +287,7 @@ static LogicalResult exportSplitChiselInterface(CircuitOp circuit,
 
 namespace {
 struct ExportChiselInterfacePass
-    : public ExportChiselInterfaceBase<ExportChiselInterfacePass> {
+    : public circt::impl::ExportChiselInterfaceBase<ExportChiselInterfacePass> {
 
   explicit ExportChiselInterfacePass(llvm::raw_ostream &os) : os(os) {}
 
@@ -293,7 +301,7 @@ private:
 };
 
 struct ExportSplitChiselInterfacePass
-    : public ExportSplitChiselInterfaceBase<ExportSplitChiselInterfacePass> {
+    : public circt::impl::ExportSplitChiselInterfaceBase<ExportSplitChiselInterfacePass> {
 
   explicit ExportSplitChiselInterfacePass(StringRef directory) {
     directoryName = directory.str();

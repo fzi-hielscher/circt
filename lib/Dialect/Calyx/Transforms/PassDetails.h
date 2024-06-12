@@ -23,8 +23,6 @@
 namespace circt {
 namespace calyx {
 
-#define GEN_PASS_CLASSES
-#include "circt/Dialect/Calyx/CalyxPasses.h.inc"
 
 } // namespace calyx
 } // namespace circt

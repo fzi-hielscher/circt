@@ -23,8 +23,6 @@
 namespace circt {
 namespace verif {
 
-#define GEN_PASS_CLASSES
-#include "circt/Dialect/Verif/Passes.h.inc"
 
 } // namespace verif
 } // namespace circt

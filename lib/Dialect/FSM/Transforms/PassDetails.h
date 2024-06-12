@@ -22,8 +22,6 @@
 namespace circt {
 namespace fsm {
 
-#define GEN_PASS_CLASSES
-#include "circt/Dialect/FSM/Passes.h.inc"
 
 } // namespace fsm
 } // namespace circt

@@ -22,6 +22,8 @@ namespace circt {
 #define GEN_PASS_DECL_HWLOWERINSTANCECHOICES
 #define GEN_PASS_DECL_PREPAREFOREMISSION
 #define GEN_PASS_DECL_LEGALIZEANONENUMS
+#define GEN_PASS_DECL_EXPORTSPLITVERILOG
+#define GEN_PASS_DECL_EXPORTVERILOG
 #include "circt/Conversion/Passes.h.inc"
 namespace hw {
 class HWModuleLike;

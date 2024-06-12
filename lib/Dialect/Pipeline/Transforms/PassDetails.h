@@ -26,9 +26,6 @@
 namespace circt {
 namespace pipeline {
 
-#define GEN_PASS_CLASSES
-#include "circt/Dialect/Pipeline/PipelinePasses.h.inc"
-
 } // namespace pipeline
 } // namespace circt
 

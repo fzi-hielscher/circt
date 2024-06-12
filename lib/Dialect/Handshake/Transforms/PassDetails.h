@@ -28,8 +28,6 @@
 namespace circt {
 namespace handshake {
 
-#define GEN_PASS_CLASSES
-#include "circt/Dialect/Handshake/HandshakePasses.h.inc"
 
 } // namespace handshake
 } // namespace circt

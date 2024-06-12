@@ -19,7 +19,5 @@
 
 #include "mlir/Pass/Pass.h"
 
-#define GEN_PASS_CLASSES
-#include "circt/Dialect/Ibis/Ibis.h.inc"
 
 #endif // DIALECT_IBIS_TRANSFORMS_PASSDETAILS_H

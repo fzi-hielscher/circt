@@ -28,8 +28,6 @@
 namespace circt {
 namespace dc {
 
-#define GEN_PASS_CLASSES
-#include "circt/Dialect/DC/DCPasses.h.inc"
 
 } // namespace dc
 } // namespace circt
