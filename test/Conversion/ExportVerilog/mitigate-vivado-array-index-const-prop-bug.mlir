@@ -1,5 +1,5 @@
 // RUN: circt-opt --export-verilog %s | FileCheck %s
-// RUN: circt-opt --test-apply-lowering-options='options=mitigateVivadoArrayIndexConstPropBug' --export-verilog %s | FileCheck %s --check-prefix=FIXED
+// RUN: circt-opt --test-apply-lowering-options='lowering-options=mitigateVivadoArrayIndexConstPropBug' --export-verilog %s | FileCheck %s --check-prefix=FIXED
 
 // CHECK-LABEL: module Simple(
 // FIXED-LABEL: module Simple(

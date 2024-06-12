@@ -1,5 +1,5 @@
 // RUN: circt-opt %s -prettify-verilog --export-verilog --verify-diagnostics -o %t | FileCheck %s --strict-whitespace
-// RUN: circt-opt %s -test-apply-lowering-options='options=exprInEventControl' -prettify-verilog -export-verilog | FileCheck %s --check-prefix=INLINE
+// RUN: circt-opt %s -test-apply-lowering-options='lowering-options=exprInEventControl' -prettify-verilog -export-verilog | FileCheck %s --check-prefix=INLINE
 
 // CHECK-LABEL: module AlwaysSpill(
 hw.module @AlwaysSpill(in %port: i1) {

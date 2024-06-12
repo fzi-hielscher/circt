@@ -1,4 +1,4 @@
-// RUN: circt-opt %s -test-apply-lowering-options='options=emitBindComments' -export-verilog -verify-diagnostics | FileCheck %s --strict-whitespace
+// RUN: circt-opt %s -test-apply-lowering-options='lowering-options=emitBindComments' -export-verilog -verify-diagnostics | FileCheck %s --strict-whitespace
 
 sv.macro.decl @SYNTHESIS
 
