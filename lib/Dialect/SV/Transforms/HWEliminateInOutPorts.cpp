@@ -15,6 +15,13 @@
 #include "mlir/IR/Builders.h"
 #include "llvm/ADT/PostOrderIterator.h"
 
+namespace circt {
+namespace sv {
+#define GEN_PASS_DEF_HWELIMINATEINOUTPORTS
+#include "circt/Dialect/SV/SVPasses.h.inc"
+} // namespace sv
+} // namespace circt
+
 using namespace circt;
 using namespace sv;
 using namespace hw;
@@ -22,18 +29,13 @@ using namespace igraph;
 
 namespace {
 
-#define GEN_PASS_DEF_HWELIMINATEINOUTPORTS
-#include "circt/Dialect/SV/SVPasses.h.inc"
-
 struct HWEliminateInOutPortsPass
-    : public impl::HWEliminateInOutPortsBase<HWEliminateInOutPortsPass> {
+    : public circt::sv::impl::HWEliminateInOutPortsBase<
+          HWEliminateInOutPortsPass> {
   using HWEliminateInOutPortsBase<
       HWEliminateInOutPortsPass>::HWEliminateInOutPortsBase;
   void runOnOperation() override;
 };
-} // end anonymous namespace
-
-namespace {
 
 class HWInOutPortConversion : public PortConversion {
 public:
