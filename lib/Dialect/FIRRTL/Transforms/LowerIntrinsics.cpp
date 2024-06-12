@@ -11,10 +11,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/FIRRTL/Passes.h"
-#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLIntrinsics.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "mlir/Pass/Pass.h"
 
 using namespace circt;
 
@@ -32,7 +32,8 @@ using namespace firrtl;
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct LowerIntrinsicsPass : public circt::firrtl::impl::LowerIntrinsicsBase<LowerIntrinsicsPass> {
+struct LowerIntrinsicsPass
+    : public circt::firrtl::impl::LowerIntrinsicsBase<LowerIntrinsicsPass> {
   LogicalResult initialize(MLIRContext *context) override;
   void runOnOperation() override;
 

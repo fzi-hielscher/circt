@@ -48,7 +48,6 @@ namespace comb {
 class CombDialect;
 } // namespace comb
 
-
 } // namespace circt
 
 #endif // TRANSFORMS_PASSDETAIL_H

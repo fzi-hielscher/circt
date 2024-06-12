@@ -10,17 +10,17 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/Pipeline/PipelinePasses.h"
-#include "circt/Dialect/Pipeline/PipelineOps.h"
 #include "circt/Analysis/DependenceAnalysis.h"
 #include "circt/Analysis/SchedulingAnalysis.h"
 #include "circt/Dialect/HW/HWOpInterfaces.h"
+#include "circt/Dialect/Pipeline/PipelineOps.h"
+#include "circt/Dialect/Pipeline/PipelinePasses.h"
 #include "circt/Dialect/SSP/SSPOps.h"
 #include "circt/Dialect/SSP/Utilities.h"
 #include "circt/Scheduling/Algorithms.h"
 #include "circt/Scheduling/Utilities.h"
 #include "circt/Support/BackedgeBuilder.h"
+#include "mlir/Pass/Pass.h"
 
 #define DEBUG_TYPE "pipeline-schedule-linear"
 
@@ -40,7 +40,8 @@ using namespace pipeline;
 namespace {
 
 class ScheduleLinearPipelinePass
-    : public circt::pipeline::impl::ScheduleLinearPipelineBase<ScheduleLinearPipelinePass> {
+    : public circt::pipeline::impl::ScheduleLinearPipelineBase<
+          ScheduleLinearPipelinePass> {
 public:
   void runOnOperation() override;
 

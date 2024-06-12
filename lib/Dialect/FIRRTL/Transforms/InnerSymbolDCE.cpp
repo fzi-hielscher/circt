@@ -9,13 +9,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/Passes.h"
-#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
-#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/HW/HWAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Threading.h"
+#include "mlir/Pass/Pass.h"
 #include "llvm/Support/Debug.h"
 
 #define DEBUG_TYPE "firrtl-inner-symbol-dce"
@@ -56,7 +55,8 @@ static void dropSymbol(const InnerSymTarget &target) {
   symOp.setInnerSymbolAttr(base.erase(target.getField()));
 }
 
-struct InnerSymbolDCEPass : public circt::firrtl::impl::InnerSymbolDCEBase<InnerSymbolDCEPass> {
+struct InnerSymbolDCEPass
+    : public circt::firrtl::impl::InnerSymbolDCEBase<InnerSymbolDCEPass> {
   void runOnOperation() override;
 
 private:

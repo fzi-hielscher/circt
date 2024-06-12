@@ -10,12 +10,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWOpInterfaces.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Transforms/Passes.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 
 using namespace mlir;
@@ -153,7 +153,8 @@ public:
   }
 };
 
-struct MapArithToCombPass : public circt::impl::MapArithToCombPassBase<MapArithToCombPass> {
+struct MapArithToCombPass
+    : public circt::impl::MapArithToCombPassBase<MapArithToCombPass> {
 public:
   void runOnOperation() override {
     auto *ctx = &getContext();

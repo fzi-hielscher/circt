@@ -18,15 +18,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/SV/SVPasses.h"
-#include "circt/Dialect/SV/SVOps.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWOps.h"
+#include "circt/Dialect/SV/SVOps.h"
 #include "circt/Dialect/SV/SVPasses.h"
 #include "circt/Support/LoweringOptions.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
 #include "mlir/IR/Matchers.h"
+#include "mlir/Pass/Pass.h"
 #include "llvm/ADT/TypeSwitch.h"
 
 using namespace circt;
@@ -37,7 +36,6 @@ namespace sv {
 #include "circt/Dialect/SV/SVPasses.h.inc"
 } // namespace sv
 } // namespace circt
-
 
 //===----------------------------------------------------------------------===//
 // PrettifyVerilogPass

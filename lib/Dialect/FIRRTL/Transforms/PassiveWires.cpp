@@ -12,9 +12,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/FIRRTL/Passes.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "mlir/Pass/Pass.h"
 
 #include "circt/Dialect/FIRRTL/FIRRTLUtils.h"
 #include "circt/Support/Debug.h"
@@ -45,7 +45,8 @@ static bool hasFlip(Type t) {
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct PassiveWiresPass : public circt::firrtl::impl::PassiveWiresBase<PassiveWiresPass> {
+struct PassiveWiresPass
+    : public circt::firrtl::impl::PassiveWiresBase<PassiveWiresPass> {
   void runOnOperation() override;
 };
 } // end anonymous namespace

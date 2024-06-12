@@ -6,15 +6,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/FIRRTL/Passes.h"
-#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/Debug/DebugOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLTypes.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
 #include "circt/Support/Naming.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
+#include "mlir/Pass/Pass.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/Support/Parallel.h"
 
@@ -32,7 +31,8 @@ using namespace firrtl;
 
 namespace {
 struct MaterializeDebugInfoPass
-    : public circt::firrtl::impl::MaterializeDebugInfoBase<MaterializeDebugInfoPass> {
+    : public circt::firrtl::impl::MaterializeDebugInfoBase<
+          MaterializeDebugInfoPass> {
   void runOnOperation() override;
   void materializeVariable(OpBuilder &builder, StringAttr name, Value value);
   Value convertToDebugAggregates(OpBuilder &builder, Value value);

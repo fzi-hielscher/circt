@@ -9,9 +9,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/Verif/VerifPasses.h"
-#include "circt/Dialect/Verif/VerifOps.h"
 #include "circt/Dialect/HW/HWAttributes.h"
 #include "circt/Dialect/HW/HWModuleGraph.h"
 #include "circt/Dialect/HW/HWOps.h"
@@ -42,7 +39,8 @@ namespace {
 // Clocked assertlike ops are a simple form of assertions that only
 // contain one clock and one disable condition.
 struct VerifyClockedAssertLikePass
-    : circt::verif::impl::VerifyClockedAssertLikeBase<VerifyClockedAssertLikePass> {
+    : circt::verif::impl::VerifyClockedAssertLikeBase<
+          VerifyClockedAssertLikePass> {
 private:
   // Used to perform a DFS search through the module to visit all operands
   // before they are used

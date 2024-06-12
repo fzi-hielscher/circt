@@ -39,7 +39,8 @@ using namespace msft;
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct LowerInstancesPass : public circt::msft::impl::LowerInstancesBase<LowerInstancesPass> {
+struct LowerInstancesPass
+    : public circt::msft::impl::LowerInstancesBase<LowerInstancesPass> {
   void runOnOperation() override;
 
   LogicalResult lower(DynamicInstanceOp inst, InstanceHierarchyOp hier,

@@ -9,11 +9,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/FIRRTL/Passes.h"
-#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLInstanceGraph.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/Passes.h"
+#include "mlir/Pass/Pass.h"
 #include "llvm/Support/DOTGraphTraits.h"
 #include "llvm/Support/GraphWriter.h"
 #include "llvm/Support/raw_ostream.h"
@@ -31,7 +30,8 @@ using namespace firrtl;
 
 namespace {
 struct PrintInstanceGraphPass
-    : public circt::firrtl::impl::PrintInstanceGraphBase<PrintInstanceGraphPass> {
+    : public circt::firrtl::impl::PrintInstanceGraphBase<
+          PrintInstanceGraphPass> {
   PrintInstanceGraphPass(raw_ostream &os) : os(os) {}
   void runOnOperation() override {
     auto circuitOp = getOperation();

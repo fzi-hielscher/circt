@@ -11,13 +11,13 @@
 //===----------------------------------------------------------------------===//
 
 #include "circt/Conversion/CalyxToFSM.h"
-#include "mlir/Pass/Pass.h"
 #include "circt/Dialect/Calyx/CalyxOps.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/FSM/FSMDialect.h"
 #include "circt/Dialect/FSM/FSMGraph.h"
 #include "circt/Dialect/FSM/FSMOps.h"
 #include "circt/Support/Namespace.h"
+#include "mlir/Pass/Pass.h"
 #include "llvm/ADT/TypeSwitch.h"
 
 using namespace mlir;
@@ -30,7 +30,7 @@ namespace circt {
 using namespace circt;
 using namespace calyx;
 using namespace fsm;
-//using namespace sv;
+// using namespace sv;
 
 namespace {
 

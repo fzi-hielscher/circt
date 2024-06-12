@@ -10,12 +10,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/LLHD/Transforms/Passes.h"
 #include "circt/Dialect/LLHD/IR/LLHDOps.h"
 #include "circt/Dialect/LLHD/Transforms/Passes.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Visitors.h"
+#include "mlir/Pass/Pass.h"
 
 using namespace circt;
 
@@ -26,11 +25,11 @@ namespace llhd {
 } // namespace llhd
 } // namespace circt
 
-
 namespace {
 
 struct FunctionEliminationPass
-    : public circt::llhd::impl::FunctionEliminationBase<FunctionEliminationPass> {
+    : public circt::llhd::impl::FunctionEliminationBase<
+          FunctionEliminationPass> {
   void runOnOperation() override;
 };
 

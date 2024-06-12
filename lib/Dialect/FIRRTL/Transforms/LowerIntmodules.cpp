@@ -11,14 +11,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/FIRRTL/Passes.h"
-#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/AnnotationDetails.h"
 #include "circt/Dialect/FIRRTL/FIRRTLInstanceGraph.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/Passes.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
+#include "mlir/Pass/Pass.h"
 
 using namespace circt;
 
@@ -36,7 +35,8 @@ using namespace firrtl;
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct LowerIntmodulesPass : public circt::firrtl::impl::LowerIntmodulesBase<LowerIntmodulesPass> {
+struct LowerIntmodulesPass
+    : public circt::firrtl::impl::LowerIntmodulesBase<LowerIntmodulesPass> {
   void runOnOperation() override;
   using LowerIntmodulesBase::fixupEICGWrapper;
 };

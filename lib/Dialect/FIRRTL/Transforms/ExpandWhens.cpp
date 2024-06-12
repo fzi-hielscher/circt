@@ -10,15 +10,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/FIRRTL/Passes.h"
-#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLTypes.h"
 #include "circt/Dialect/FIRRTL/FIRRTLUtils.h"
 #include "circt/Dialect/FIRRTL/FIRRTLVisitors.h"
 #include "circt/Dialect/FIRRTL/Passes.h"
 #include "circt/Support/FieldRef.h"
+#include "mlir/Pass/Pass.h"
 #include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/STLExtras.h"
 
@@ -793,7 +791,8 @@ LogicalResult ModuleVisitor::checkInitialization() {
 //===----------------------------------------------------------------------===//
 
 namespace {
-class ExpandWhensPass : public circt::firrtl::impl::ExpandWhensBase<ExpandWhensPass> {
+class ExpandWhensPass
+    : public circt::firrtl::impl::ExpandWhensBase<ExpandWhensPass> {
   void runOnOperation() override;
 };
 } // end anonymous namespace

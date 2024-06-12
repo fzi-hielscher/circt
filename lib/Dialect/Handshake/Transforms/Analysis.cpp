@@ -10,9 +10,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/Handshake/HandshakePasses.h"
-#include "circt/Dialect/Handshake/HandshakeOps.h"
 #include "circt/Dialect/Handshake/HandshakeOps.h"
 #include "circt/Dialect/Handshake/HandshakePasses.h"
 #include "circt/Support/LLVM.h"
@@ -20,6 +17,7 @@
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/OperationSupport.h"
 #include "mlir/IR/PatternMatch.h"
+#include "mlir/Pass/Pass.h"
 #include "mlir/Support/IndentedOstream.h"
 #include "llvm/ADT/TypeSwitch.h"
 
@@ -46,7 +44,8 @@ static bool isControlOp(Operation *op) {
 
 namespace {
 struct HandshakeDotPrintPass
-    : public circt::handshake::impl::HandshakeDotPrintBase<HandshakeDotPrintPass> {
+    : public circt::handshake::impl::HandshakeDotPrintBase<
+          HandshakeDotPrintPass> {
   void runOnOperation() override {
     ModuleOp m = getOperation();
 
@@ -112,7 +111,8 @@ private:
 };
 
 struct HandshakeOpCountPass
-    : public circt::handshake::impl::HandshakeOpCountBase<HandshakeOpCountPass> {
+    : public circt::handshake::impl::HandshakeOpCountBase<
+          HandshakeOpCountPass> {
   void runOnOperation() override {
     ModuleOp m = getOperation();
 
@@ -592,7 +592,8 @@ std::string HandshakeDotPrintPass::dotPrint(mlir::raw_indented_ostream &os,
 }
 
 namespace {
-struct HandshakeAddIDsPass : public circt::handshake::impl::HandshakeAddIDsBase<HandshakeAddIDsPass> {
+struct HandshakeAddIDsPass
+    : public circt::handshake::impl::HandshakeAddIDsBase<HandshakeAddIDsPass> {
   void runOnOperation() override {
     handshake::FuncOp funcOp = getOperation();
     auto *ctx = &getContext();

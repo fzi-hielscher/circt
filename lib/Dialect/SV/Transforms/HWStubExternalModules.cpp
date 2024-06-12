@@ -10,12 +10,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/SV/SVPasses.h"
-#include "circt/Dialect/SV/SVOps.h"
 #include "circt/Dialect/HW/HWOps.h"
+#include "circt/Dialect/SV/SVOps.h"
 #include "circt/Dialect/SV/SVPasses.h"
 #include "mlir/IR/Builders.h"
+#include "mlir/Pass/Pass.h"
 
 using namespace circt;
 
@@ -26,14 +25,14 @@ namespace sv {
 } // namespace sv
 } // namespace circt
 
-
 //===----------------------------------------------------------------------===//
 // HWStubExternalModules Pass
 //===----------------------------------------------------------------------===//
 
 namespace {
 struct HWStubExternalModulesPass
-    : public circt::sv::impl::HWStubExternalModulesBase<HWStubExternalModulesPass> {
+    : public circt::sv::impl::HWStubExternalModulesBase<
+          HWStubExternalModulesPass> {
   void runOnOperation() override;
 };
 } // end anonymous namespace

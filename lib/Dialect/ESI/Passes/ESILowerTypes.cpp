@@ -35,7 +35,8 @@ using namespace circt::esi;
 
 namespace {
 /// Lower all "high-level" ESI types on modules to some lower construct.
-struct ESILowerTypesPass : public circt::esi::impl::LowerESITypesBase<ESILowerTypesPass> {
+struct ESILowerTypesPass
+    : public circt::esi::impl::LowerESITypesBase<ESILowerTypesPass> {
   void runOnOperation() override;
 };
 } // anonymous namespace

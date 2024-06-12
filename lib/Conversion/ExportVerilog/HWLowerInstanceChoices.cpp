@@ -17,7 +17,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
 #include "ExportVerilogInternals.h"
 #include "circt/Conversion/ExportVerilog.h"
 #include "circt/Dialect/HW/HWOps.h"
@@ -27,6 +26,7 @@
 #include "circt/Support/SymCache.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
 #include "mlir/IR/SymbolTable.h"
+#include "mlir/Pass/Pass.h"
 
 using namespace mlir;
 
@@ -43,7 +43,8 @@ using namespace ExportVerilog;
 namespace {
 
 struct HWLowerInstanceChoicesPass
-    : public circt::impl::HWLowerInstanceChoicesBase<HWLowerInstanceChoicesPass> {
+    : public circt::impl::HWLowerInstanceChoicesBase<
+          HWLowerInstanceChoicesPass> {
   void runOnOperation() override;
 };
 

@@ -6,7 +6,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
 #include "circt/Transforms/Passes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Operation.h"
@@ -20,7 +19,6 @@ namespace circt {
 #define GEN_PASS_DEF_STRIPDEBUGINFOWITHPRED
 #include "circt/Transforms/Passes.h.inc"
 } // namespace circt
-
 
 template <typename OpOrBlockArgument>
 static void updateLocIfChanged(OpOrBlockArgument *op, Location newLoc) {

@@ -10,9 +10,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/FIRRTL/Passes.h"
-#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/AnnotationDetails.h"
 #include "circt/Dialect/FIRRTL/FIRRTLAnnotations.h"
 #include "circt/Dialect/FIRRTL/FIRRTLInstanceGraph.h"
@@ -22,6 +19,7 @@
 #include "circt/Dialect/HW/HWAttributes.h"
 #include "circt/Support/LLVM.h"
 #include "mlir/IR/AttrTypeSubElements.h"
+#include "mlir/Pass/Pass.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/PostOrderIterator.h"
 #include "llvm/ADT/StringMap.h"
@@ -101,7 +99,8 @@ static StringRef getPrefix(Operation *module) {
 /// module is instantiated under two different prefix hierarchies, it will be
 /// duplicated and each module will have one prefix applied.
 namespace {
-class PrefixModulesPass : public circt::firrtl::impl::PrefixModulesBase<PrefixModulesPass> {
+class PrefixModulesPass
+    : public circt::firrtl::impl::PrefixModulesBase<PrefixModulesPass> {
   void removeDeadAnnotations(StringAttr moduleName, Operation *op);
   void renameModuleBody(std::string prefix, StringRef oldName,
                         FModuleOp module);

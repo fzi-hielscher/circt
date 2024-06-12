@@ -19,5 +19,4 @@
 
 #include "mlir/Pass/Pass.h"
 
-
 #endif // DIALECT_IBIS_TRANSFORMS_PASSDETAILS_H

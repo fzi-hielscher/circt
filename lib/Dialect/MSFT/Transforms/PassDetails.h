@@ -47,7 +47,6 @@ struct RemoveOpLowering : public OpConversionPattern<OpTy> {
   }
 };
 
-
 } // namespace msft
 } // namespace circt
 

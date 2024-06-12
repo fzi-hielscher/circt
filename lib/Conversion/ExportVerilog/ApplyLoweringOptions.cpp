@@ -10,12 +10,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
 #include "circt/Conversion/ExportVerilog.h"
 #include "circt/Dialect/Comb/CombDialect.h"
 #include "circt/Dialect/HW/HWDialect.h"
 #include "circt/Dialect/SV/SVDialect.h"
 #include "circt/Support/LoweringOptions.h"
+#include "mlir/Pass/Pass.h"
 
 using namespace circt;
 
@@ -24,11 +24,11 @@ namespace circt {
 #include "circt/Conversion/Passes.h.inc"
 } // namespace circt
 
-
 namespace {
 
 struct TestApplyLoweringOptionPass
-    : public circt::impl::TestApplyLoweringOptionBase<TestApplyLoweringOptionPass> {
+    : public circt::impl::TestApplyLoweringOptionBase<
+          TestApplyLoweringOptionPass> {
   TestApplyLoweringOptionPass() = default;
   void runOnOperation() override {
     if (!optionsString.hasValue()) {

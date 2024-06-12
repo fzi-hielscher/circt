@@ -6,9 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/Ibis/IbisPasses.h"
 #include "circt/Dialect/Ibis/IbisOps.h"
+#include "circt/Dialect/Ibis/IbisPasses.h"
+#include "mlir/Pass/Pass.h"
 
 #include "circt/Dialect/Ibis/IbisDialect.h"
 #include "circt/Dialect/Ibis/IbisOps.h"
@@ -111,7 +111,8 @@ struct InstanceToContainerInstancePattern
 };
 
 /// Run all the physical lowerings.
-struct ContainerizePass : public circt::ibis::impl::IbisContainerizeBase<ContainerizePass> {
+struct ContainerizePass
+    : public circt::ibis::impl::IbisContainerizeBase<ContainerizePass> {
   void runOnOperation() override;
 
 private:

@@ -10,11 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "circt/Dialect/DC/DCOps.h"
+#include "circt/Dialect/DC/DCPasses.h"
 #include "mlir/Pass/Pass.h"
-#include "circt/Dialect/DC/DCPasses.h"
-#include "circt/Dialect/DC/DCOps.h"
-#include "circt/Dialect/DC/DCOps.h"
-#include "circt/Dialect/DC/DCPasses.h"
 
 using namespace circt;
 
@@ -143,7 +141,8 @@ static LogicalResult addSinkOps(Block &block, OpBuilder &rewriter) {
 
 namespace {
 struct DCMaterializeForksSinksPass
-    : public circt::dc::impl::DCMaterializeForksSinksBase<DCMaterializeForksSinksPass> {
+    : public circt::dc::impl::DCMaterializeForksSinksBase<
+          DCMaterializeForksSinksPass> {
   void runOnOperation() override {
     auto *op = getOperation();
     OpBuilder builder(op);
@@ -162,7 +161,8 @@ struct DCMaterializeForksSinksPass
 };
 
 struct DCDematerializeForksSinksPass
-    : public circt::dc::impl::DCDematerializeForksSinksBase<DCDematerializeForksSinksPass> {
+    : public circt::dc::impl::DCDematerializeForksSinksBase<
+          DCDematerializeForksSinksPass> {
   void runOnOperation() override {
     auto *op = getOperation();
     op->walk([&](dc::SinkOp sinkOp) { sinkOp.erase(); });

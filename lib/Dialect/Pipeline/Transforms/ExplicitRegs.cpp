@@ -10,10 +10,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/Pipeline/PipelinePasses.h"
 #include "circt/Dialect/Pipeline/PipelineOps.h"
+#include "circt/Dialect/Pipeline/PipelinePasses.h"
 #include "circt/Support/BackedgeBuilder.h"
+#include "mlir/Pass/Pass.h"
 #include "llvm/Support/Debug.h"
 
 using namespace mlir;
@@ -38,7 +38,8 @@ struct NamedValue {
   operator llvm::StringRef() const { return name.getValue(); }
 };
 
-class ExplicitRegsPass : public circt::pipeline::impl::ExplicitRegsBase<ExplicitRegsPass> {
+class ExplicitRegsPass
+    : public circt::pipeline::impl::ExplicitRegsBase<ExplicitRegsPass> {
 public:
   void runOnOperation() override;
 

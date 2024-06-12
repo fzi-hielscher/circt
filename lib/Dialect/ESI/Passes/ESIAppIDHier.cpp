@@ -24,7 +24,8 @@ namespace esi {
 using namespace esi;
 
 namespace {
-struct ESIAppIDHierPass : public circt::esi::impl::ESIAppIDHierBase<ESIAppIDHierPass> {
+struct ESIAppIDHierPass
+    : public circt::esi::impl::ESIAppIDHierBase<ESIAppIDHierPass> {
   void runOnOperation() override;
 
 private:

@@ -6,9 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/Ibis/IbisPasses.h"
 #include "circt/Dialect/Ibis/IbisOps.h"
+#include "circt/Dialect/Ibis/IbisPasses.h"
+#include "mlir/Pass/Pass.h"
 
 #include "circt/Dialect/Ibis/IbisDialect.h"
 #include "circt/Dialect/Ibis/IbisOps.h"
@@ -84,7 +84,8 @@ struct BlockConversionPattern : public OpConversionPattern<StaticBlockOp> {
   }
 };
 
-struct ArgifyBlocksPass : public circt::ibis::impl::IbisArgifyBlocksBase<ArgifyBlocksPass> {
+struct ArgifyBlocksPass
+    : public circt::ibis::impl::IbisArgifyBlocksBase<ArgifyBlocksPass> {
   void runOnOperation() override;
 };
 } // anonymous namespace

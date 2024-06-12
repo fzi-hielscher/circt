@@ -6,7 +6,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
 #include "circt/Conversion/ArcToLLVM.h"
 #include "circt/Conversion/CombToLLVM.h"
 #include "circt/Conversion/HWToLLVM.h"
@@ -29,6 +28,7 @@
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/SCF/IR/SCF.h"
 #include "mlir/IR/BuiltinDialect.h"
+#include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "llvm/Support/Debug.h"
 
@@ -555,7 +555,8 @@ struct SimEmitValueOpLowering
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct LowerArcToLLVMPass : public circt::impl::LowerArcToLLVMBase<LowerArcToLLVMPass> {
+struct LowerArcToLLVMPass
+    : public circt::impl::LowerArcToLLVMBase<LowerArcToLLVMPass> {
   void runOnOperation() override;
 };
 } // namespace

@@ -9,15 +9,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/FIRRTL/Passes.h"
-#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/AnnotationDetails.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLUtils.h"
 #include "circt/Dialect/FIRRTL/Namespace.h"
 #include "circt/Dialect/FIRRTL/Passes.h"
 #include "circt/Dialect/HW/InnerSymbolNamespace.h"
 #include "circt/Dialect/SV/SVOps.h"
+#include "mlir/Pass/Pass.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/Mutex.h"
 #include "llvm/Support/RWMutex.h"
@@ -128,7 +127,8 @@ static SmallString<32> fileNameForLayer(StringRef circuitName,
 // LowerLayersPass
 //===----------------------------------------------------------------------===//
 
-class LowerLayersPass : public circt::firrtl::impl::LowerLayersBase<LowerLayersPass> {
+class LowerLayersPass
+    : public circt::firrtl::impl::LowerLayersBase<LowerLayersPass> {
   /// Safely build a new module with a given namehint.  This handles geting a
   /// lock to modify the top-level circuit.
   FModuleOp buildNewModule(OpBuilder &builder, Location location,

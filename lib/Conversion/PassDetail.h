@@ -151,7 +151,6 @@ namespace ltl {
 class LTLDialect;
 } // namespace ltl
 
-
 } // namespace circt
 
 #endif // CONVERSION_PASSDETAIL_H

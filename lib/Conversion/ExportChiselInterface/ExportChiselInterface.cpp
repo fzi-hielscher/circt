@@ -23,14 +23,12 @@ namespace circt {
 #define GEN_PASS_DEF_EXPORTCHISELINTERFACE
 #define GEN_PASS_DEF_EXPORTSPLITCHISELINTERFACE
 #include "circt/Conversion/Passes.h.inc"
-}
+} // namespace circt
 
 using namespace circt;
 using namespace firrtl;
 
 #define DEBUG_TYPE "export-chisel-package"
-
-
 
 //===----------------------------------------------------------------------===//
 // Interface emission logic
@@ -301,7 +299,8 @@ private:
 };
 
 struct ExportSplitChiselInterfacePass
-    : public circt::impl::ExportSplitChiselInterfaceBase<ExportSplitChiselInterfacePass> {
+    : public circt::impl::ExportSplitChiselInterfaceBase<
+          ExportSplitChiselInterfacePass> {
 
   explicit ExportSplitChiselInterfacePass(StringRef directory) {
     directoryName = directory.str();

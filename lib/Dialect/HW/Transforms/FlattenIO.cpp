@@ -6,11 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "circt/Dialect/HW/HWOps.h"
+#include "circt/Dialect/HW/HWPasses.h"
 #include "mlir/Pass/Pass.h"
-#include "circt/Dialect/HW/HWPasses.h"
-#include "circt/Dialect/HW/HWOps.h"
-#include "circt/Dialect/HW/HWOps.h"
-#include "circt/Dialect/HW/HWPasses.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "llvm/ADT/TypeSwitch.h"
 

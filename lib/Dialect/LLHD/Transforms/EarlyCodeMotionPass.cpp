@@ -10,13 +10,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/LLHD/Transforms/Passes.h"
-#include "circt/Dialect/LLHD/IR/LLHDOps.h"
 #include "TemporalRegions.h"
+#include "circt/Dialect/LLHD/IR/LLHDOps.h"
 #include "circt/Dialect/LLHD/Transforms/Passes.h"
 #include "circt/Support/LLVM.h"
 #include "mlir/IR/Dominance.h"
+#include "mlir/Pass/Pass.h"
 
 using namespace circt;
 
@@ -26,7 +25,6 @@ namespace llhd {
 #include "circt/Dialect/LLHD/Transforms/Passes.h.inc"
 } // namespace llhd
 } // namespace circt
-
 
 namespace {
 struct EarlyCodeMotionPass

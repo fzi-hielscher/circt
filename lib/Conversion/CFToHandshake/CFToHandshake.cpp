@@ -10,7 +10,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "circt/Conversion/CFToHandshake.h"
-#include "mlir/Pass/Pass.h"
 #include "circt/Dialect/Handshake/HandshakeOps.h"
 #include "circt/Dialect/Handshake/HandshakePasses.h"
 #include "circt/Support/BackedgeBuilder.h"
@@ -1745,7 +1744,8 @@ struct HandshakeRemoveBlockPass
   void runOnOperation() override { removeBasicBlocks(getOperation()); }
 };
 
-struct CFToHandshakePass : public circt::impl::CFToHandshakeBase<CFToHandshakePass> {
+struct CFToHandshakePass
+    : public circt::impl::CFToHandshakeBase<CFToHandshakePass> {
   CFToHandshakePass(bool sourceConstants, bool disableTaskPipelining) {
     this->sourceConstants = sourceConstants;
     this->disableTaskPipelining = disableTaskPipelining;

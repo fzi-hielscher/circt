@@ -10,9 +10,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/FIRRTL/Passes.h"
-#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/Emit/EmitOps.h"
 #include "circt/Dialect/FIRRTL/AnnotationDetails.h"
 #include "circt/Dialect/FIRRTL/FIRRTLAnnotationHelper.h"
@@ -24,6 +21,7 @@
 #include "circt/Dialect/HW/InnerSymbolNamespace.h"
 #include "circt/Dialect/SV/SVOps.h"
 #include "circt/Support/Namespace.h"
+#include "mlir/Pass/Pass.h"
 #include "llvm/ADT/PostOrderIterator.h"
 #include "llvm/ADT/STLFunctionalExtras.h"
 #include "llvm/Support/FileSystem.h"
@@ -42,7 +40,8 @@ namespace firrtl {
 using namespace firrtl;
 
 namespace {
-struct AddSeqMemPortsPass : public circt::firrtl::impl::AddSeqMemPortsBase<AddSeqMemPortsPass> {
+struct AddSeqMemPortsPass
+    : public circt::firrtl::impl::AddSeqMemPortsBase<AddSeqMemPortsPass> {
   void runOnOperation() override;
   LogicalResult processAddPortAnno(Location loc, Annotation anno);
   LogicalResult processFileAnno(Location loc, StringRef metadataDir,

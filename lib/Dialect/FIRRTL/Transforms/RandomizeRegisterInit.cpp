@@ -10,9 +10,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/FIRRTL/Passes.h"
-#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/AnnotationDetails.h"
 #include "circt/Dialect/FIRRTL/FIRRTLAnnotations.h"
 #include "circt/Dialect/FIRRTL/FIRRTLInstanceGraph.h"
@@ -21,6 +18,7 @@
 #include "circt/Dialect/FIRRTL/Passes.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
+#include "mlir/Pass/Pass.h"
 #include "llvm/Support/Parallel.h"
 
 using namespace mlir;
@@ -37,7 +35,8 @@ using namespace firrtl;
 
 namespace {
 struct RandomizeRegisterInitPass
-    : public circt::firrtl::impl::RandomizeRegisterInitBase<RandomizeRegisterInitPass> {
+    : public circt::firrtl::impl::RandomizeRegisterInitBase<
+          RandomizeRegisterInitPass> {
   void runOnOperation() override;
 };
 

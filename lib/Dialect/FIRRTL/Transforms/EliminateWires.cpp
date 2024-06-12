@@ -13,9 +13,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/FIRRTL/Passes.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "mlir/Pass/Pass.h"
 
 #include "circt/Dialect/FIRRTL/FIRRTLUtils.h"
 #include "circt/Support/Debug.h"
@@ -43,7 +43,8 @@ using namespace firrtl;
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct EliminateWiresPass : public circt::firrtl::impl::EliminateWiresBase<EliminateWiresPass> {
+struct EliminateWiresPass
+    : public circt::firrtl::impl::EliminateWiresBase<EliminateWiresPass> {
   void runOnOperation() override;
 };
 } // end anonymous namespace

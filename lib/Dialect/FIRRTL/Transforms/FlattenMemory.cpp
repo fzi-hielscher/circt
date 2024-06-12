@@ -10,15 +10,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/FIRRTL/Passes.h"
-#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLAnnotations.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLTypes.h"
 #include "circt/Dialect/FIRRTL/FIRRTLUtils.h"
 #include "circt/Dialect/FIRRTL/Passes.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
+#include "mlir/Pass/Pass.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Debug.h"
 #include <numeric>
@@ -37,7 +35,8 @@ namespace firrtl {
 using namespace firrtl;
 
 namespace {
-struct FlattenMemoryPass : public circt::firrtl::impl::FlattenMemoryBase<FlattenMemoryPass> {
+struct FlattenMemoryPass
+    : public circt::firrtl::impl::FlattenMemoryBase<FlattenMemoryPass> {
   /// This pass flattens the aggregate data of memory into a UInt, and inserts
   /// appropriate bitcasts to access the data.
   void runOnOperation() override {

@@ -177,7 +177,8 @@ PureModuleLowering::matchAndRewrite(ESIPureModuleOp pureMod, OpAdaptor adaptor,
 
 namespace {
 /// Run all the physical lowerings.
-struct ESIToPhysicalPass : public circt::esi::impl::LowerESIToPhysicalBase<ESIToPhysicalPass> {
+struct ESIToPhysicalPass
+    : public circt::esi::impl::LowerESIToPhysicalBase<ESIToPhysicalPass> {
   void runOnOperation() override;
 };
 } // anonymous namespace

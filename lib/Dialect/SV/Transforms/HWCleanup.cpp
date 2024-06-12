@@ -13,12 +13,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/SV/SVPasses.h"
-#include "circt/Dialect/SV/SVOps.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/SV/SVAttributes.h"
+#include "circt/Dialect/SV/SVOps.h"
 #include "circt/Dialect/SV/SVPasses.h"
+#include "mlir/Pass/Pass.h"
 
 using namespace circt;
 
@@ -28,7 +27,6 @@ namespace sv {
 #include "circt/Dialect/SV/SVPasses.h.inc"
 } // namespace sv
 } // namespace circt
-
 
 //===----------------------------------------------------------------------===//
 // Helper utilities

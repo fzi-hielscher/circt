@@ -9,11 +9,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/FIRRTL/Passes.h"
-#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLFieldSource.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/Passes.h"
+#include "mlir/Pass/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 
 using namespace circt;
@@ -29,7 +28,8 @@ using namespace firrtl;
 
 namespace {
 struct PrintFIRRTLFieldSourcePass
-    : public circt::firrtl::impl::PrintFIRRTLFieldSourcePassBase<PrintFIRRTLFieldSourcePass> {
+    : public circt::firrtl::impl::PrintFIRRTLFieldSourcePassBase<
+          PrintFIRRTLFieldSourcePass> {
   PrintFIRRTLFieldSourcePass(raw_ostream &os) : os(os) {}
 
   void visitValue(const FieldSource &fieldRefs, Value v) {

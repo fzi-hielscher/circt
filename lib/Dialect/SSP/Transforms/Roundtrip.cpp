@@ -10,15 +10,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/SSP/SSPAttributes.h"
 #include "circt/Dialect/SSP/SSPOps.h"
 #include "circt/Dialect/SSP/SSPPasses.h"
 #include "circt/Dialect/SSP/Utilities.h"
 #include "circt/Scheduling/Problems.h"
-#include "circt/Dialect/SSP/SSPPasses.h"
-#include "circt/Dialect/SSP/SSPOps.h"
+#include "mlir/Pass/Pass.h"
 
 using namespace circt;
 

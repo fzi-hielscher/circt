@@ -11,12 +11,12 @@
 //===----------------------------------------------------------------------===//
 
 #include "circt/Conversion/HWToSystemC.h"
-#include "mlir/Pass/Pass.h"
 #include "circt/Dialect/Comb/CombDialect.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/SystemC/SystemCOps.h"
 #include "mlir/Dialect/EmitC/IR/EmitC.h"
 #include "mlir/IR/BuiltinDialect.h"
+#include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "llvm/ADT/TypeSwitch.h"
 
@@ -335,7 +335,8 @@ static void populateTypeConversion(TypeConverter &converter) {
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct HWToSystemCPass : public circt::impl::ConvertHWToSystemCBase<HWToSystemCPass> {
+struct HWToSystemCPass
+    : public circt::impl::ConvertHWToSystemCBase<HWToSystemCPass> {
   void runOnOperation() override;
 };
 } // namespace

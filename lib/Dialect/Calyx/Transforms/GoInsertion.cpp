@@ -10,15 +10,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/Calyx/CalyxPasses.h"
-#include "circt/Dialect/Calyx/CalyxOps.h"
 #include "circt/Dialect/Calyx/CalyxHelpers.h"
 #include "circt/Dialect/Calyx/CalyxOps.h"
 #include "circt/Dialect/Calyx/CalyxPasses.h"
 #include "circt/Support/LLVM.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/OperationSupport.h"
+#include "mlir/Pass/Pass.h"
 
 using namespace circt;
 
@@ -34,7 +32,8 @@ using namespace mlir;
 
 namespace {
 
-struct GoInsertionPass : public circt::calyx::impl::GoInsertionBase<GoInsertionPass> {
+struct GoInsertionPass
+    : public circt::calyx::impl::GoInsertionBase<GoInsertionPass> {
   void runOnOperation() override;
 };
 

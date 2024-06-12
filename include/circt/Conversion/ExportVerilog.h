@@ -57,7 +57,6 @@ mlir::LogicalResult exportVerilog(mlir::ModuleOp module, llvm::raw_ostream &os);
 mlir::LogicalResult exportSplitVerilog(mlir::ModuleOp module,
                                        llvm::StringRef dirname);
 
-
 } // namespace circt
 
 #endif // CIRCT_TRANSLATION_EXPORTVERILOG_H

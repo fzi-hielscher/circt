@@ -10,7 +10,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
 #include "circt/Transforms/Passes.h"
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
@@ -22,6 +21,7 @@
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
 #include "mlir/IR/OperationSupport.h"
+#include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "llvm/Support/MathExtras.h"
@@ -311,7 +311,8 @@ static void populateTypeConversionPatterns(TypeConverter &typeConverter) {
   });
 }
 
-struct FlattenMemRefPass : public circt::impl::FlattenMemRefBase<FlattenMemRefPass> {
+struct FlattenMemRefPass
+    : public circt::impl::FlattenMemRefBase<FlattenMemRefPass> {
 public:
   void runOnOperation() override {
 

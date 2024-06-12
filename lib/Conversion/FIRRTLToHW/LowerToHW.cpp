@@ -10,7 +10,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
 #include "circt/Conversion/FIRRTLToHW.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/Emit/EmitOps.h"
@@ -550,7 +549,8 @@ void CircuitLoweringState::processRemainingAnnotations(
 } // end anonymous namespace
 
 namespace {
-struct FIRRTLModuleLowering : public circt::impl::LowerFIRRTLToHWBase<FIRRTLModuleLowering> {
+struct FIRRTLModuleLowering
+    : public circt::impl::LowerFIRRTLToHWBase<FIRRTLModuleLowering> {
 
   void runOnOperation() override;
   void setEnableAnnotationWarning() { enableAnnotationWarning = true; }

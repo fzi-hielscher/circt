@@ -11,14 +11,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/Calyx/CalyxPasses.h"
-#include "circt/Dialect/Calyx/CalyxOps.h"
 #include "circt/Dialect/Calyx/CalyxOps.h"
 #include "circt/Dialect/Calyx/CalyxPasses.h"
 #include "circt/Support/LLVM.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/OperationSupport.h"
+#include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
@@ -37,7 +35,8 @@ using namespace mlir;
 namespace {
 
 struct GroupInvariantCodeMotionPass
-    : public circt::calyx::impl::GroupInvariantCodeMotionBase<GroupInvariantCodeMotionPass> {
+    : public circt::calyx::impl::GroupInvariantCodeMotionBase<
+          GroupInvariantCodeMotionPass> {
   void runOnOperation() override {
     auto wires = getOperation().getWiresOp();
     for (auto groupOp : wires.getOps<GroupOp>()) {

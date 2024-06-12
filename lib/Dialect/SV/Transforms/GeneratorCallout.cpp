@@ -11,12 +11,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/SV/SVPasses.h"
-#include "circt/Dialect/SV/SVOps.h"
 #include "circt/Dialect/HW/HWOps.h"
+#include "circt/Dialect/SV/SVOps.h"
 #include "circt/Dialect/SV/SVPasses.h"
 #include "mlir/IR/Builders.h"
+#include "mlir/Pass/Pass.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Process.h"
@@ -40,7 +39,8 @@ using namespace hw;
 namespace {
 
 struct HWGeneratorCalloutPass
-    : public circt::sv::impl::HWGeneratorCalloutPassBase<HWGeneratorCalloutPass> {
+    : public circt::sv::impl::HWGeneratorCalloutPassBase<
+          HWGeneratorCalloutPass> {
   void runOnOperation() override;
 
   void processGenerator(HWModuleGeneratedOp generatedModuleOp,

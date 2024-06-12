@@ -10,9 +10,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/Handshake/HandshakePasses.h"
-#include "circt/Dialect/Handshake/HandshakeOps.h"
 #include "circt/Dialect/Handshake/HandshakeOps.h"
 #include "circt/Dialect/Handshake/HandshakePasses.h"
 #include "circt/Support/BackedgeBuilder.h"
@@ -20,6 +17,7 @@
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/SCF/IR/SCF.h"
 #include "mlir/IR/PatternMatch.h"
+#include "mlir/Pass/Pass.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include "mlir/Transforms/DialectConversion.h"
 
@@ -38,7 +36,8 @@ using namespace mlir;
 namespace {
 
 struct HandshakeLegalizeMemrefsPass
-    : public circt::handshake::impl::HandshakeLegalizeMemrefsBase<HandshakeLegalizeMemrefsPass> {
+    : public circt::handshake::impl::HandshakeLegalizeMemrefsBase<
+          HandshakeLegalizeMemrefsPass> {
   void runOnOperation() override {
     func::FuncOp op = getOperation();
     if (op.isExternal())

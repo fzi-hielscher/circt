@@ -14,14 +14,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/SV/SVPasses.h"
-#include "circt/Dialect/SV/SVOps.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/HW/HWTypes.h"
+#include "circt/Dialect/SV/SVOps.h"
 #include "circt/Dialect/SV/SVPasses.h"
 #include "circt/Support/LoweringOptions.h"
 #include "mlir/IR/Builders.h"
+#include "mlir/Pass/Pass.h"
 
 using namespace circt;
 
@@ -31,7 +30,6 @@ namespace sv {
 #include "circt/Dialect/SV/SVPasses.h.inc"
 } // namespace sv
 } // namespace circt
-
 
 //===----------------------------------------------------------------------===//
 // HWLegalizeModulesPass

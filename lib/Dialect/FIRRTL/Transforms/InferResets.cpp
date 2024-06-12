@@ -10,9 +10,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/FIRRTL/Passes.h"
-#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/AnnotationDetails.h"
 #include "circt/Dialect/FIRRTL/FIRRTLInstanceGraph.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
@@ -26,6 +23,7 @@
 #include "mlir/IR/Dominance.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
 #include "mlir/IR/Threading.h"
+#include "mlir/Pass/Pass.h"
 #include "llvm/ADT/EquivalenceClasses.h"
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/TinyPtrVector.h"
@@ -410,7 +408,8 @@ namespace {
 ///    module's instantiations have that port connected to the desired signal
 ///    already.
 ///
-struct InferResetsPass : public circt::firrtl::impl::InferResetsBase<InferResetsPass> {
+struct InferResetsPass
+    : public circt::firrtl::impl::InferResetsBase<InferResetsPass> {
   void runOnOperation() override;
   void runOnOperationInner();
 

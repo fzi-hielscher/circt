@@ -60,7 +60,7 @@ namespace circt {
 #define GEN_PASS_DEF_EXPORTSPLITVERILOG
 #define GEN_PASS_DEF_EXPORTVERILOG
 #include "circt/Conversion/Passes.h.inc"
-}
+} // namespace circt
 
 using namespace circt;
 
@@ -7005,7 +7005,8 @@ LogicalResult circt::exportVerilog(ModuleOp module, llvm::raw_ostream &os) {
 
 namespace {
 
-struct ExportVerilogPass : public circt::impl::ExportVerilogBase<ExportVerilogPass> {
+struct ExportVerilogPass
+    : public circt::impl::ExportVerilogBase<ExportVerilogPass> {
   ExportVerilogPass(raw_ostream &os) : os(os) {}
   void runOnOperation() override {
     // Prepare the ops in the module for emission.

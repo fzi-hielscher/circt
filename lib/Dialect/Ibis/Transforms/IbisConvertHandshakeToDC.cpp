@@ -6,9 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/Ibis/IbisPasses.h"
 #include "circt/Dialect/Ibis/IbisOps.h"
+#include "circt/Dialect/Ibis/IbisPasses.h"
+#include "mlir/Pass/Pass.h"
 
 #include "circt/Conversion/HandshakeToDC.h"
 #include "circt/Dialect/DC/DCTypes.h"
@@ -38,7 +38,8 @@ using namespace ibis;
 namespace {
 
 struct ConvertHandshakeToDCPass
-    : public circt::ibis::impl::IbisConvertHandshakeToDCBase<ConvertHandshakeToDCPass> {
+    : public circt::ibis::impl::IbisConvertHandshakeToDCBase<
+          ConvertHandshakeToDCPass> {
   void runOnOperation() override;
 };
 

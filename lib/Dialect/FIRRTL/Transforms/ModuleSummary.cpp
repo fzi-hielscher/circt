@@ -6,10 +6,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/FIRRTL/Passes.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
 #include "mlir/IR/Threading.h"
+#include "mlir/Pass/Pass.h"
 
 #include <mutex>
 #include <numeric>
@@ -62,7 +62,8 @@ static size_t knownWidths(Type type) {
 }
 
 namespace {
-struct ModuleSummaryPass : public circt::firrtl::impl::ModuleSummaryBase<ModuleSummaryPass> {
+struct ModuleSummaryPass
+    : public circt::firrtl::impl::ModuleSummaryBase<ModuleSummaryPass> {
   struct KeyTy {
     SmallVector<size_t> portSizes;
     size_t opcount;

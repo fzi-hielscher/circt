@@ -11,9 +11,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/FIRRTL/Passes.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "mlir/Pass/Pass.h"
 
 #include "circt/Dialect/FIRRTL/AnnotationDetails.h"
 #include "circt/Dialect/FIRRTL/FIRRTLUtils.h"
@@ -40,7 +40,8 @@ namespace firrtl {
 using namespace firrtl;
 
 namespace {
-struct InjectDUTHierarchy : public circt::firrtl::impl::InjectDUTHierarchyBase<InjectDUTHierarchy> {
+struct InjectDUTHierarchy
+    : public circt::firrtl::impl::InjectDUTHierarchyBase<InjectDUTHierarchy> {
   void runOnOperation() override;
 };
 } // namespace

@@ -12,11 +12,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/HW/HWPasses.h"
-#include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/HW/HWOpInterfaces.h"
+#include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/HW/HWPasses.h"
+#include "mlir/Pass/Pass.h"
 
 /// VerifyInnerRefNamespace pass until have container operation.
 
@@ -26,7 +25,6 @@ namespace hw {
 #include "circt/Dialect/HW/Passes.h.inc"
 } // namespace hw
 } // namespace circt
-
 
 namespace {
 

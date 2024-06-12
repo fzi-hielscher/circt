@@ -6,9 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/Ibis/IbisPasses.h"
 #include "circt/Dialect/Ibis/IbisOps.h"
+#include "circt/Dialect/Ibis/IbisPasses.h"
+#include "mlir/Pass/Pass.h"
 
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/Ibis/IbisDialect.h"
@@ -36,7 +36,8 @@ using namespace ibis;
 namespace {
 
 struct PrepareSchedulingPass
-    : public circt::ibis::impl::IbisPrepareSchedulingBase<PrepareSchedulingPass> {
+    : public circt::ibis::impl::IbisPrepareSchedulingBase<
+          PrepareSchedulingPass> {
   void runOnOperation() override;
 
   // Prepares the given sblock for scheduling by moving its body into a

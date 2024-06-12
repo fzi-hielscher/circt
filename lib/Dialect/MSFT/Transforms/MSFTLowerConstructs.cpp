@@ -42,7 +42,8 @@ using namespace msft;
 
 namespace {
 
-struct LowerConstructsPass : public circt::msft::impl::LowerConstructsBase<LowerConstructsPass> {
+struct LowerConstructsPass
+    : public circt::msft::impl::LowerConstructsBase<LowerConstructsPass> {
   void runOnOperation() override;
 
   /// For naming purposes, get the inner Namespace for a module, building it

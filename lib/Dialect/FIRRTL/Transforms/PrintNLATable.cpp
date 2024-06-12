@@ -9,11 +9,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Pass/Pass.h"
-#include "circt/Dialect/FIRRTL/Passes.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/NLATable.h"
 #include "circt/Dialect/FIRRTL/Passes.h"
+#include "mlir/Pass/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 
 using namespace circt;
@@ -28,7 +27,8 @@ namespace firrtl {
 using namespace firrtl;
 
 namespace {
-struct PrintNLATablePass : public circt::firrtl::impl::PrintNLATableBase<PrintNLATablePass> {
+struct PrintNLATablePass
+    : public circt::firrtl::impl::PrintNLATableBase<PrintNLATablePass> {
   PrintNLATablePass(raw_ostream &os) : os(os) {}
   void runOnOperation() override {
     auto circuitOp = getOperation();

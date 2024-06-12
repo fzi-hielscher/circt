@@ -11,7 +11,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "circt/Conversion/HandshakeToDC.h"
-#include "mlir/Pass/Pass.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/DC/DCDialect.h"
 #include "circt/Dialect/DC/DCOps.h"
@@ -22,6 +21,7 @@
 #include "circt/Dialect/Handshake/HandshakePasses.h"
 #include "circt/Dialect/Handshake/Visitor.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "llvm/Support/MathExtras.h"
@@ -614,7 +614,8 @@ public:
   }
 };
 
-class HandshakeToDCPass : public circt::impl::HandshakeToDCBase<HandshakeToDCPass> {
+class HandshakeToDCPass
+    : public circt::impl::HandshakeToDCBase<HandshakeToDCPass> {
 public:
   void runOnOperation() override {
     mlir::ModuleOp mod = getOperation();

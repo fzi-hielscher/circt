@@ -196,7 +196,8 @@ void BundlePort::buildOutputSignals() {
 
 namespace {
 /// Convert all the ESI bundle ports on modules to channel ports.
-struct ESIBundlesPass : public circt::esi::impl::LowerESIBundlesBase<ESIBundlesPass> {
+struct ESIBundlesPass
+    : public circt::esi::impl::LowerESIBundlesBase<ESIBundlesPass> {
   void runOnOperation() override;
 };
 } // anonymous namespace
