@@ -16,7 +16,7 @@ using namespace mlir;
 
 namespace circt {
 namespace firrtl {
-#define GEN_PASS_DEF_LOWERINTRINSICS
+#define GEN_PASS_DEF_LINT
 #include "circt/Dialect/FIRRTL/Passes.h.inc"
 } // namespace firrtl
 } // namespace circt
@@ -25,7 +25,7 @@ using namespace circt;
 using namespace firrtl;
 
 namespace {
-struct LintPass : public circt::firrtl::impl::LowerIntrinsicsBase<LintPass> {
+struct LintPass : public circt::firrtl::impl::LintBase<LintPass> {
   void runOnOperation() override {
     auto fModule = getOperation();
     auto walkResult = fModule.walk<WalkOrder::PreOrder>([&](Operation *op) {
