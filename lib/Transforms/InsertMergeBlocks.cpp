@@ -6,7 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetail.h"
+#include "mlir/Pass/Pass.h"
 #include "circt/Transforms/Passes.h"
 #include "mlir/Analysis/CFGLoopInfo.h"
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
@@ -19,6 +19,12 @@
 #include "llvm/ADT/TypeSwitch.h"
 
 using namespace mlir;
+
+namespace circt {
+#define GEN_PASS_DEF_INSERTMERGEBLOCKS
+#include "circt/Transforms/Passes.h.inc"
+} // namespace circt
+
 using namespace circt;
 
 /// Replaces the branching to oldDest of with an equivalent operation that
@@ -344,7 +350,7 @@ private:
 };
 
 struct InsertMergeBlocksPass
-    : public InsertMergeBlocksBase<InsertMergeBlocksPass> {
+    : public circt::impl::InsertMergeBlocksBase<InsertMergeBlocksPass> {
 public:
   void runOnOperation() override {
     auto *ctx = &getContext();

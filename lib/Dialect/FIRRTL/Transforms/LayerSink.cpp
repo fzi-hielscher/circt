@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 
 #include "circt/Support/Debug.h"
 #include "mlir/IR/Dominance.h"
@@ -21,11 +23,19 @@
 #define DEBUG_TYPE "firrtl-layer-sink"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_LAYERSINK
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 
 namespace {
 /// A control-flow sink pass.
-struct LayerSink : public LayerSinkBase<LayerSink> {
+struct LayerSink : public circt::firrtl::impl::LayerSinkBase<LayerSink> {
   void runOnOperation() override;
 };
 } // end anonymous namespace

@@ -6,7 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/Debug/DebugOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLTypes.h"
@@ -17,12 +19,20 @@
 #include "llvm/Support/Parallel.h"
 
 using namespace mlir;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_MATERIALIZEDEBUGINFO
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace circt;
 using namespace firrtl;
 
 namespace {
 struct MaterializeDebugInfoPass
-    : public MaterializeDebugInfoBase<MaterializeDebugInfoPass> {
+    : public circt::firrtl::impl::MaterializeDebugInfoBase<MaterializeDebugInfoPass> {
   void runOnOperation() override;
   void materializeVariable(OpBuilder &builder, StringAttr name, Value value);
   Value convertToDebugAggregates(OpBuilder &builder, Value value);

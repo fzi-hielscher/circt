@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetail.h"
+#include "mlir/Pass/Pass.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWOpInterfaces.h"
 #include "circt/Dialect/HW/HWOps.h"
@@ -19,6 +19,12 @@
 #include "mlir/Transforms/DialectConversion.h"
 
 using namespace mlir;
+
+namespace circt {
+#define GEN_PASS_DEF_MAPARITHTOCOMBPASS
+#include "circt/Transforms/Passes.h.inc"
+} // namespace circt
+
 using namespace circt;
 
 namespace {
@@ -147,7 +153,7 @@ public:
   }
 };
 
-struct MapArithToCombPass : public MapArithToCombPassBase<MapArithToCombPass> {
+struct MapArithToCombPass : public circt::impl::MapArithToCombPassBase<MapArithToCombPass> {
 public:
   void runOnOperation() override {
     auto *ctx = &getContext();

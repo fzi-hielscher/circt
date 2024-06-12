@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/AnnotationDetails.h"
 #include "circt/Dialect/FIRRTL/FIRRTLAnnotationHelper.h"
 #include "circt/Dialect/FIRRTL/FIRRTLAttributes.h"
@@ -34,6 +36,14 @@
 #define DEBUG_TYPE "gct"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_GRANDCENTRAL
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 
 //===----------------------------------------------------------------------===//
@@ -582,7 +592,7 @@ struct InterfaceElemsBuilder {
 /// 3. The circuit-level Grand Central annotation is walked to both generate and
 ///    instantiate interfaces and to generate the "mappings" file that produces
 ///    cross-module references (XMRs) to drive the interface.
-struct GrandCentralPass : public GrandCentralBase<GrandCentralPass> {
+struct GrandCentralPass : public circt::firrtl::impl::GrandCentralBase<GrandCentralPass> {
   using GrandCentralBase::companionMode;
 
   void runOnOperation() override;

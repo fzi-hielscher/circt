@@ -12,7 +12,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 
 #include "circt/Dialect/FIRRTL/AnnotationDetails.h"
 #include "circt/Dialect/FIRRTL/FIRRTLAttributes.h"
@@ -37,6 +39,14 @@
 #define DEBUG_TYPE "firrtl-lower-signatures"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_LOWERSIGNATURES
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 
 //===----------------------------------------------------------------------===//
@@ -462,7 +472,7 @@ static void lowerModuleBody(FModuleOp mod,
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct LowerSignaturesPass : public LowerSignaturesBase<LowerSignaturesPass> {
+struct LowerSignaturesPass : public circt::firrtl::impl::LowerSignaturesBase<LowerSignaturesPass> {
   void runOnOperation() override;
 };
 } // end anonymous namespace

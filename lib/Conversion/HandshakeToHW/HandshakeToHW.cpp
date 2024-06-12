@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "circt/Conversion/HandshakeToHW.h"
-#include "../PassDetail.h"
+#include "mlir/Pass/Pass.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/ESI/ESIOps.h"
 #include "circt/Dialect/HW/HWOps.h"
@@ -32,6 +32,12 @@
 #include <optional>
 
 using namespace mlir;
+
+namespace circt {
+#define GEN_PASS_DEF_HANDSHAKETOHW
+#include "circt/Conversion/Passes.h.inc"
+} // namespace circt
+
 using namespace circt;
 using namespace circt::handshake;
 using namespace circt::hw;
@@ -1911,7 +1917,7 @@ static LogicalResult convertFuncOp(ESITypeConverter &typeConverter,
 }
 
 namespace {
-class HandshakeToHWPass : public HandshakeToHWBase<HandshakeToHWPass> {
+class HandshakeToHWPass : public circt::impl::HandshakeToHWBase<HandshakeToHWPass> {
 public:
   void runOnOperation() override {
     mlir::ModuleOp mod = getOperation();

@@ -13,12 +13,22 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetail.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/SV/SVPasses.h"
+#include "circt/Dialect/SV/SVOps.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/SV/SVAttributes.h"
 #include "circt/Dialect/SV/SVPasses.h"
 
 using namespace circt;
+
+namespace circt {
+namespace sv {
+#define GEN_PASS_DEF_HWCLEANUP
+#include "circt/Dialect/SV/SVPasses.h.inc"
+} // namespace sv
+} // namespace circt
+
 
 //===----------------------------------------------------------------------===//
 // Helper utilities
@@ -93,8 +103,8 @@ static void mergeRegions(Region *region1, Region *region2) {
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct HWCleanupPass : public sv::HWCleanupBase<HWCleanupPass> {
-  using sv::HWCleanupBase<HWCleanupPass>::mergeAlwaysBlocks;
+struct HWCleanupPass : public circt::sv::impl::HWCleanupBase<HWCleanupPass> {
+  using sv::impl::HWCleanupBase<HWCleanupPass>::mergeAlwaysBlocks;
 
   void runOnOperation() override;
 

@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetail.h"
+#include "mlir/Pass/Pass.h"
 #include "circt/Transforms/Passes.h"
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
@@ -27,6 +27,13 @@
 #include "llvm/Support/MathExtras.h"
 
 using namespace mlir;
+
+namespace circt {
+#define GEN_PASS_DEF_FLATTENMEMREF
+#define GEN_PASS_DEF_FLATTENMEMREFCALLS
+#include "circt/Transforms/Passes.h.inc"
+} // namespace circt
+
 using namespace circt;
 
 bool circt::isUniDimensional(MemRefType memref) {
@@ -304,7 +311,7 @@ static void populateTypeConversionPatterns(TypeConverter &typeConverter) {
   });
 }
 
-struct FlattenMemRefPass : public FlattenMemRefBase<FlattenMemRefPass> {
+struct FlattenMemRefPass : public circt::impl::FlattenMemRefBase<FlattenMemRefPass> {
 public:
   void runOnOperation() override {
 
@@ -336,7 +343,7 @@ public:
 };
 
 struct FlattenMemRefCallsPass
-    : public FlattenMemRefCallsBase<FlattenMemRefCallsPass> {
+    : public circt::impl::FlattenMemRefCallsBase<FlattenMemRefCallsPass> {
 public:
   void runOnOperation() override {
     auto *ctx = &getContext();

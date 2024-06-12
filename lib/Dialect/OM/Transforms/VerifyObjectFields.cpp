@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/OM/OMPasses.h"
+#include "circt/Dialect/OM/OMOps.h"
 #include "circt/Dialect/HW/HWInstanceGraph.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/HW/InnerSymbolTable.h"
@@ -21,12 +23,20 @@
 #include "llvm/ADT/DenseMap.h"
 
 using namespace mlir;
+
+namespace circt {
+namespace om {
+#define GEN_PASS_DEF_VERIFYOBJECTFIELDS
+#include "circt/Dialect/OM/OMPasses.h.inc"
+} // namespace om
+} // namespace circt
+
 using namespace circt;
 using namespace om;
 
 namespace {
 struct VerifyObjectFieldsPass
-    : public VerifyObjectFieldsBase<VerifyObjectFieldsPass> {
+    : public circt::om::impl::VerifyObjectFieldsBase<VerifyObjectFieldsPass> {
   void runOnOperation() override;
   bool canScheduleOn(RegisteredOperationName opName) const override {
     return opName.getStringRef() == "firrtl.circuit" ||

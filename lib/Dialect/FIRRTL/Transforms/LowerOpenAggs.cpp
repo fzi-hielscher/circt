@@ -14,7 +14,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLAnnotations.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLTypes.h"
@@ -37,6 +39,14 @@
 #define DEBUG_TYPE "firrtl-lower-open-aggs"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_LOWEROPENAGGS
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 
 namespace {
@@ -824,7 +834,7 @@ FailureOr<MappingInfo> Visitor::mapType(Type type, Location errorLoc,
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct LowerOpenAggsPass : public LowerOpenAggsBase<LowerOpenAggsPass> {
+struct LowerOpenAggsPass : public circt::firrtl::impl::LowerOpenAggsBase<LowerOpenAggsPass> {
   LowerOpenAggsPass() = default;
   void runOnOperation() override;
 };

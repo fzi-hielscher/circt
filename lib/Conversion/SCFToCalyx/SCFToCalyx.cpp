@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "circt/Conversion/SCFToCalyx.h"
-#include "../PassDetail.h"
+#include "mlir/Pass/Pass.h"
 #include "circt/Dialect/Calyx/CalyxHelpers.h"
 #include "circt/Dialect/Calyx/CalyxLoweringUtils.h"
 #include "circt/Dialect/Calyx/CalyxOps.h"
@@ -33,6 +33,12 @@
 #include <variant>
 
 using namespace llvm;
+
+namespace circt {
+#define GEN_PASS_DEF_SCFTOCALYX
+#include "circt/Conversion/Passes.h.inc"
+} // namespace circt
+
 using namespace mlir;
 using namespace mlir::arith;
 using namespace mlir::cf;
@@ -1592,7 +1598,7 @@ using namespace circt::scftocalyx;
 //===----------------------------------------------------------------------===//
 // Pass driver
 //===----------------------------------------------------------------------===//
-class SCFToCalyxPass : public SCFToCalyxBase<SCFToCalyxPass> {
+class SCFToCalyxPass : public circt::impl::SCFToCalyxBase<SCFToCalyxPass> {
 public:
   SCFToCalyxPass()
       : SCFToCalyxBase<SCFToCalyxPass>(), partialPatternRes(success()) {}

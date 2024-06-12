@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/CHIRRTLVisitors.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLTypes.h"
@@ -25,11 +27,19 @@
 #include "llvm/ADT/TypeSwitch.h"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_LOWERCHIRRTLPASS
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 using namespace chirrtl;
 
 namespace {
-struct LowerCHIRRTLPass : public LowerCHIRRTLPassBase<LowerCHIRRTLPass>,
+struct LowerCHIRRTLPass : public circt::firrtl::impl::LowerCHIRRTLPassBase<LowerCHIRRTLPass>,
                           public CHIRRTLVisitor<LowerCHIRRTLPass>,
                           public FIRRTLVisitor<LowerCHIRRTLPass> {
 

@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/OM/OMPasses.h"
+#include "circt/Dialect/OM/OMOps.h"
 #include "circt/Dialect/OM/OMOps.h"
 #include "circt/Dialect/OM/OMPasses.h"
 #include "circt/Support/Namespace.h"
@@ -22,6 +24,14 @@
 #include <memory>
 
 using namespace circt;
+
+namespace circt {
+namespace om {
+#define GEN_PASS_DEF_LINKMODULES
+#include "circt/Dialect/OM/OMPasses.h.inc"
+} // namespace om
+} // namespace circt
+
 using namespace om;
 using namespace mlir;
 using namespace llvm;
@@ -47,7 +57,7 @@ struct ModuleInfo {
   ModuleOp module;
 };
 
-struct LinkModulesPass : public LinkModulesBase<LinkModulesPass> {
+struct LinkModulesPass : public circt::om::impl::LinkModulesBase<LinkModulesPass> {
   void runOnOperation() override;
 };
 

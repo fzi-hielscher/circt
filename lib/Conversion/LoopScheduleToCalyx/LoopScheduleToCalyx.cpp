@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "circt/Conversion/LoopScheduleToCalyx.h"
-#include "../PassDetail.h"
+#include "mlir/Pass/Pass.h"
 #include "circt/Dialect/Calyx/CalyxHelpers.h"
 #include "circt/Dialect/Calyx/CalyxLoweringUtils.h"
 #include "circt/Dialect/Calyx/CalyxOps.h"
@@ -32,6 +32,12 @@
 #include <variant>
 
 using namespace llvm;
+
+namespace circt {
+#define GEN_PASS_DEF_LOOPSCHEDULETOCALYX
+#include "circt/Conversion/Passes.h.inc"
+} // namespace circt
+
 using namespace mlir;
 using namespace mlir::arith;
 using namespace mlir::cf;
@@ -1387,7 +1393,7 @@ class CleanupFuncOps : public calyx::FuncOpPartialLoweringPattern {
 // Pass driver
 //===----------------------------------------------------------------------===//
 class LoopScheduleToCalyxPass
-    : public LoopScheduleToCalyxBase<LoopScheduleToCalyxPass> {
+    : public circt::impl::LoopScheduleToCalyxBase<LoopScheduleToCalyxPass> {
 public:
   LoopScheduleToCalyxPass()
       : LoopScheduleToCalyxBase<LoopScheduleToCalyxPass>(),

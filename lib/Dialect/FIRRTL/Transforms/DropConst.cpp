@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLInstanceGraph.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLTypes.h"
@@ -19,6 +21,14 @@
 #include "mlir/IR/Threading.h"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_DROPCONST
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 
 /// Returns null type if no conversion is needed.
@@ -43,7 +53,7 @@ static Type convertType(Type type) {
 }
 
 namespace {
-class DropConstPass : public DropConstBase<DropConstPass> {
+class DropConstPass : public circt::firrtl::impl::DropConstBase<DropConstPass> {
   void runOnOperation() override {
 
     // Update signatures of all module-likes.

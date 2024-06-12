@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/Handshake/HandshakePasses.h"
+#include "circt/Dialect/Handshake/HandshakeOps.h"
 #include "circt/Dialect/Handshake/HandshakeOps.h"
 #include "circt/Dialect/Handshake/HandshakePasses.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
@@ -19,6 +21,14 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 using namespace circt;
+
+namespace circt {
+namespace handshake {
+#define GEN_PASS_DEF_HANDSHAKESPLITMERGES
+#include "circt/Dialect/Handshake/HandshakePasses.h.inc"
+} // namespace handshake
+} // namespace circt
+
 using namespace handshake;
 using namespace mlir;
 
@@ -118,7 +128,7 @@ struct DeconstructCMergePattern
 };
 
 struct HandshakeSplitMerges
-    : public HandshakeSplitMergesBase<HandshakeSplitMerges> {
+    : public circt::handshake::impl::HandshakeSplitMergesBase<HandshakeSplitMerges> {
   void runOnOperation() override {
     RewritePatternSet patterns(&getContext());
     patterns.insert<DeconstructCMergePattern, DeconstructMergePattern>(

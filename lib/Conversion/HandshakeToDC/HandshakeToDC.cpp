@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "circt/Conversion/HandshakeToDC.h"
-#include "../PassDetail.h"
+#include "mlir/Pass/Pass.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/DC/DCDialect.h"
 #include "circt/Dialect/DC/DCOps.h"
@@ -28,6 +28,12 @@
 #include <optional>
 
 using namespace mlir;
+
+namespace circt {
+#define GEN_PASS_DEF_HANDSHAKETODC
+#include "circt/Conversion/Passes.h.inc"
+} // namespace circt
+
 using namespace circt;
 using namespace handshake;
 using namespace dc;
@@ -608,7 +614,7 @@ public:
   }
 };
 
-class HandshakeToDCPass : public HandshakeToDCBase<HandshakeToDCPass> {
+class HandshakeToDCPass : public circt::impl::HandshakeToDCBase<HandshakeToDCPass> {
 public:
   void runOnOperation() override {
     mlir::ModuleOp mod = getOperation();

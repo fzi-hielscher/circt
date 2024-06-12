@@ -18,7 +18,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/AnnotationDetails.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLUtils.h"
@@ -31,9 +33,17 @@
 #define DEBUG_TYPE "firrtl-remove-resets"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_SFCCOMPAT
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 
-struct SFCCompatPass : public SFCCompatBase<SFCCompatPass> {
+struct SFCCompatPass : public circt::firrtl::impl::SFCCompatBase<SFCCompatPass> {
   void runOnOperation() override;
 };
 

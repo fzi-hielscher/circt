@@ -17,7 +17,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "../PassDetail.h"
+#include "mlir/Pass/Pass.h"
 #include "ExportVerilogInternals.h"
 #include "circt/Conversion/ExportVerilog.h"
 #include "circt/Dialect/Comb/CombOps.h"
@@ -34,6 +34,11 @@
 #include "llvm/Support/Debug.h"
 
 #define DEBUG_TYPE "prepare-for-emission"
+
+namespace circt {
+#define GEN_PASS_DEF_PREPAREFOREMISSION
+#include "circt/Conversion/Passes.h.inc"
+} // namespace circt
 
 using namespace circt;
 using namespace comb;
@@ -1333,7 +1338,7 @@ LogicalResult ExportVerilog::prepareHWModule(hw::HWEmittableModuleLike module,
 namespace {
 
 struct PrepareForEmissionPass
-    : public PrepareForEmissionBase<PrepareForEmissionPass> {
+    : public circt::impl::PrepareForEmissionBase<PrepareForEmissionPass> {
 
   bool canScheduleOn(mlir::RegisteredOperationName opName) const final {
     return opName.hasInterface<hw::HWEmittableModuleLike>();

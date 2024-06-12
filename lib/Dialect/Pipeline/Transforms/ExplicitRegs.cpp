@@ -10,11 +10,21 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/Pipeline/PipelinePasses.h"
+#include "circt/Dialect/Pipeline/PipelineOps.h"
 #include "circt/Support/BackedgeBuilder.h"
 #include "llvm/Support/Debug.h"
 
 using namespace mlir;
+
+namespace circt {
+namespace pipeline {
+#define GEN_PASS_DEF_EXPLICITREGS
+#include "circt/Dialect/Pipeline/PipelinePasses.h.inc"
+} // namespace pipeline
+} // namespace circt
+
 using namespace circt;
 using namespace pipeline;
 
@@ -28,7 +38,7 @@ struct NamedValue {
   operator llvm::StringRef() const { return name.getValue(); }
 };
 
-class ExplicitRegsPass : public ExplicitRegsBase<ExplicitRegsPass> {
+class ExplicitRegsPass : public circt::pipeline::impl::ExplicitRegsBase<ExplicitRegsPass> {
 public:
   void runOnOperation() override;
 

@@ -6,7 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/AnnotationDetails.h"
 #include "circt/Dialect/FIRRTL/FIRRTLInstanceGraph.h"
 #include "circt/Dialect/FIRRTL/Passes.h"
@@ -25,6 +27,14 @@
 #define DEBUG_TYPE "firrtl-imdeadcodeelim"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_IMDEADCODEELIM
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 
 // Return true if this op has side-effects except for alloc and read.
@@ -48,7 +58,7 @@ static bool isDeletableDeclaration(Operation *op) {
 }
 
 namespace {
-struct IMDeadCodeElimPass : public IMDeadCodeElimBase<IMDeadCodeElimPass> {
+struct IMDeadCodeElimPass : public circt::firrtl::impl::IMDeadCodeElimBase<IMDeadCodeElimPass> {
   void runOnOperation() override;
 
   void rewriteModuleSignature(FModuleOp module);

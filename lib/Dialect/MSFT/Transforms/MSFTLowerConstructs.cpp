@@ -25,6 +25,14 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 using namespace mlir;
+
+namespace circt {
+namespace msft {
+#define GEN_PASS_DEF_LOWERCONSTRUCTS
+#include "circt/Dialect/MSFT/MSFTPasses.h.inc"
+} // namespace msft
+} // namespace circt
+
 using namespace circt;
 using namespace msft;
 
@@ -34,7 +42,7 @@ using namespace msft;
 
 namespace {
 
-struct LowerConstructsPass : public LowerConstructsBase<LowerConstructsPass> {
+struct LowerConstructsPass : public circt::msft::impl::LowerConstructsBase<LowerConstructsPass> {
   void runOnOperation() override;
 
   /// For naming purposes, get the inner Namespace for a module, building it

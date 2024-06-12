@@ -23,11 +23,19 @@
 #include "mlir/Transforms/DialectConversion.h"
 
 using namespace circt;
+
+namespace circt {
+namespace esi {
+#define GEN_PASS_DEF_LOWERESITYPES
+#include "circt/Dialect/ESI/ESIPasses.h.inc"
+} // namespace esi
+} // namespace circt
+
 using namespace circt::esi;
 
 namespace {
 /// Lower all "high-level" ESI types on modules to some lower construct.
-struct ESILowerTypesPass : public LowerESITypesBase<ESILowerTypesPass> {
+struct ESILowerTypesPass : public circt::esi::impl::LowerESITypesBase<ESILowerTypesPass> {
   void runOnOperation() override;
 };
 } // anonymous namespace

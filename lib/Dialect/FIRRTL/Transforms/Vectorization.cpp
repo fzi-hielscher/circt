@@ -11,7 +11,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLTypes.h"
 #include "circt/Dialect/FIRRTL/FIRRTLUtils.h"
@@ -25,6 +27,14 @@
 #define DEBUG_TYPE "firrtl-vectorization"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_VECTORIZATION
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 
 namespace {
@@ -72,7 +82,7 @@ public:
 };
 } // namespace
 
-struct VectorizationPass : public VectorizationBase<VectorizationPass> {
+struct VectorizationPass : public circt::firrtl::impl::VectorizationBase<VectorizationPass> {
   VectorizationPass() = default;
   void runOnOperation() override;
 };

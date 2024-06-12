@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLTypes.h"
 #include "circt/Dialect/FIRRTL/FIRRTLUtils.h"
@@ -21,6 +23,14 @@
 #include "llvm/ADT/STLExtras.h"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_EXPANDWHENS
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 
 /// Move all operations from a source block in to a destination block. Leaves
@@ -783,7 +793,7 @@ LogicalResult ModuleVisitor::checkInitialization() {
 //===----------------------------------------------------------------------===//
 
 namespace {
-class ExpandWhensPass : public ExpandWhensBase<ExpandWhensPass> {
+class ExpandWhensPass : public circt::firrtl::impl::ExpandWhensBase<ExpandWhensPass> {
   void runOnOperation() override;
 };
 } // end anonymous namespace

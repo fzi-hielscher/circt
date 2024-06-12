@@ -22,9 +22,6 @@ class Pass;
 } // namespace mlir
 
 namespace circt {
-
-#define GEN_PASS_DECL_LOWERFIRRTLTOHW
-#include "circt/Conversion/Passes.h.inc"
 namespace firrtl {
 enum class VerificationFlavor {
   // Use the flavor specified by the op.
@@ -38,6 +35,9 @@ enum class VerificationFlavor {
   SVA
 };
 } // namespace firrtl
+
+#define GEN_PASS_DECL_LOWERFIRRTLTOHW
+#include "circt/Conversion/Passes.h.inc"
 
 std::unique_ptr<mlir::Pass>
 createLowerFIRRTLToHWPass(bool enableAnnotationWarning = false,

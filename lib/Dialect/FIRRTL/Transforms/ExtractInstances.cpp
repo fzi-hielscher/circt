@@ -12,7 +12,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/Emit/EmitOps.h"
 #include "circt/Dialect/FIRRTL/AnnotationDetails.h"
 #include "circt/Dialect/FIRRTL/FIRRTLAnnotations.h"
@@ -37,6 +39,14 @@
 #define DEBUG_TYPE "firrtl-extract-instances"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_EXTRACTINSTANCES
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 using hw::InnerRefAttr;
 
@@ -59,7 +69,7 @@ struct ExtractionInfo {
 };
 
 struct ExtractInstancesPass
-    : public ExtractInstancesBase<ExtractInstancesPass> {
+    : public circt::firrtl::impl::ExtractInstancesBase<ExtractInstancesPass> {
   void runOnOperation() override;
   void collectAnnos();
   void collectAnno(InstanceOp inst, Annotation anno);

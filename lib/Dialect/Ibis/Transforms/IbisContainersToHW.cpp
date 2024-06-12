@@ -6,7 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/Ibis/IbisPasses.h"
+#include "circt/Dialect/Ibis/IbisOps.h"
 
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/Ibis/IbisDialect.h"
@@ -20,6 +22,14 @@
 #include "llvm/ADT/TypeSwitch.h"
 
 using namespace circt;
+
+namespace circt {
+namespace ibis {
+#define GEN_PASS_DEF_IBISCONTAINERSTOHW
+#include "circt/Dialect/Ibis/IbisPasses.h.inc"
+} // namespace ibis
+} // namespace circt
+
 using namespace ibis;
 
 namespace {
@@ -335,7 +345,7 @@ struct ContainerInstanceOpConversionPattern
   ContainerHWModSymbolMap &modSymMap;
 }; // namespace
 
-struct ContainersToHWPass : public IbisContainersToHWBase<ContainersToHWPass> {
+struct ContainersToHWPass : public circt::ibis::impl::IbisContainersToHWBase<ContainersToHWPass> {
   void runOnOperation() override;
 };
 } // anonymous namespace

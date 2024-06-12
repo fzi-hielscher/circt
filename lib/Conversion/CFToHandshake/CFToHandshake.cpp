@@ -10,7 +10,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "circt/Conversion/CFToHandshake.h"
-#include "../PassDetail.h"
+#include "mlir/Pass/Pass.h"
 #include "circt/Dialect/Handshake/HandshakeOps.h"
 #include "circt/Dialect/Handshake/HandshakePasses.h"
 #include "circt/Support/BackedgeBuilder.h"
@@ -47,6 +47,13 @@
 #include <map>
 
 using namespace mlir;
+
+namespace circt {
+#define GEN_PASS_DEF_CFTOHANDSHAKE
+#define GEN_PASS_DEF_HANDSHAKEREMOVEBLOCK
+#include "circt/Conversion/Passes.h.inc"
+} // namespace circt
+
 using namespace mlir::func;
 using namespace mlir::affine;
 using namespace circt;
@@ -1734,11 +1741,11 @@ static LogicalResult lowerFuncOp(func::FuncOp funcOp, MLIRContext *ctx,
 namespace {
 
 struct HandshakeRemoveBlockPass
-    : HandshakeRemoveBlockBase<HandshakeRemoveBlockPass> {
+    : circt::impl::HandshakeRemoveBlockBase<HandshakeRemoveBlockPass> {
   void runOnOperation() override { removeBasicBlocks(getOperation()); }
 };
 
-struct CFToHandshakePass : public CFToHandshakeBase<CFToHandshakePass> {
+struct CFToHandshakePass : public circt::impl::CFToHandshakeBase<CFToHandshakePass> {
   CFToHandshakePass(bool sourceConstants, bool disableTaskPipelining) {
     this->sourceConstants = sourceConstants;
     this->disableTaskPipelining = disableTaskPipelining;

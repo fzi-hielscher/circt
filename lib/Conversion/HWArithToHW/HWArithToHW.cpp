@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "circt/Conversion/HWArithToHW.h"
-#include "../PassDetail.h"
+#include "mlir/Pass/Pass.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/ConversionPatterns.h"
 #include "circt/Dialect/HW/HWOps.h"
@@ -24,6 +24,12 @@
 #include "llvm/ADT/TypeSwitch.h"
 
 using namespace mlir;
+
+namespace circt {
+#define GEN_PASS_DEF_HWARITHTOHW
+#include "circt/Conversion/Passes.h.inc"
+} // namespace circt
+
 using namespace circt;
 using namespace hwarith;
 
@@ -416,7 +422,7 @@ void circt::populateHWArithToHWConversionPatterns(
 
 namespace {
 
-class HWArithToHWPass : public HWArithToHWBase<HWArithToHWPass> {
+class HWArithToHWPass : public circt::impl::HWArithToHWBase<HWArithToHWPass> {
 public:
   void runOnOperation() override {
     ModuleOp module = getOperation();

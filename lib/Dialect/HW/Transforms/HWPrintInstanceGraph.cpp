@@ -9,18 +9,28 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/HW/HWPasses.h"
+#include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/HW/HWInstanceGraph.h"
 #include "circt/Dialect/HW/HWPasses.h"
 #include "llvm/Support/GraphWriter.h"
 #include "llvm/Support/raw_ostream.h"
 
 using namespace circt;
+
+namespace circt {
+namespace hw {
+#define GEN_PASS_DEF_PRINTINSTANCEGRAPH
+#include "circt/Dialect/HW/Passes.h.inc"
+} // namespace hw
+} // namespace circt
+
 using namespace hw;
 
 namespace {
 struct PrintInstanceGraphPass
-    : public PrintInstanceGraphBase<PrintInstanceGraphPass> {
+    : public circt::hw::impl::PrintInstanceGraphBase<PrintInstanceGraphPass> {
   PrintInstanceGraphPass(raw_ostream &os) : os(os) {}
   void runOnOperation() override {
     InstanceGraph &instanceGraph = getAnalysis<InstanceGraph>();

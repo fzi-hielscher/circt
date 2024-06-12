@@ -10,14 +10,25 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/SystemC/SystemCPasses.h"
+#include "circt/Dialect/SystemC/SystemCOps.h"
 #include "circt/Dialect/Interop/InteropOps.h"
 #include "circt/Dialect/SystemC/SystemCOps.h"
 #include "circt/Dialect/SystemC/SystemCPasses.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 
 using namespace mlir;
+
+namespace circt {
+namespace systemc {
+#define GEN_PASS_DEF_SYSTEMCLOWERINSTANCEINTEROP
+#include "circt/Dialect/SystemC/Passes.h.inc"
+} // namespace systemc
+} // namespace circt
+
 using namespace circt;
 using namespace circt::systemc;
 
@@ -152,7 +163,7 @@ private:
 
 namespace {
 struct SystemCLowerInstanceInteropPass
-    : SystemCLowerInstanceInteropBase<SystemCLowerInstanceInteropPass> {
+    : circt::systemc::impl::SystemCLowerInstanceInteropBase<SystemCLowerInstanceInteropPass> {
   void runOnOperation() override;
 };
 } // namespace

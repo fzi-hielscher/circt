@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/Pipeline/PipelinePasses.h"
+#include "circt/Dialect/Pipeline/PipelineOps.h"
 #include "circt/Analysis/DependenceAnalysis.h"
 #include "circt/Analysis/SchedulingAnalysis.h"
 #include "circt/Dialect/HW/HWOpInterfaces.h"
@@ -23,6 +25,14 @@
 #define DEBUG_TYPE "pipeline-schedule-linear"
 
 using namespace mlir;
+
+namespace circt {
+namespace pipeline {
+#define GEN_PASS_DEF_SCHEDULELINEARPIPELINE
+#include "circt/Dialect/Pipeline/PipelinePasses.h.inc"
+} // namespace pipeline
+} // namespace circt
+
 using namespace circt;
 using namespace circt::scheduling;
 using namespace pipeline;
@@ -30,7 +40,7 @@ using namespace pipeline;
 namespace {
 
 class ScheduleLinearPipelinePass
-    : public ScheduleLinearPipelineBase<ScheduleLinearPipelinePass> {
+    : public circt::pipeline::impl::ScheduleLinearPipelineBase<ScheduleLinearPipelinePass> {
 public:
   void runOnOperation() override;
 

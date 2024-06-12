@@ -27,7 +27,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 
 #include "circt/Dialect/FIRRTL/AnnotationDetails.h"
 #include "circt/Dialect/FIRRTL/FIRRTLAttributes.h"
@@ -52,6 +54,14 @@
 #define DEBUG_TYPE "firrtl-lower-types"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_LOWERFIRRTLTYPES
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 
 // TODO: check all argument types
@@ -1613,7 +1623,7 @@ bool TypeLoweringVisitor::visitExpr(MultibitMuxOp op) {
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct LowerTypesPass : public LowerFIRRTLTypesBase<LowerTypesPass> {
+struct LowerTypesPass : public circt::firrtl::impl::LowerFIRRTLTypesBase<LowerTypesPass> {
   LowerTypesPass(
       circt::firrtl::PreserveAggregate::PreserveMode preserveAggregateFlag,
       circt::firrtl::PreserveAggregate::PreserveMode preserveMemoriesFlag) {

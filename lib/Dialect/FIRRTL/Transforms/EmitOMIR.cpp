@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/Emit/EmitOps.h"
 #include "circt/Dialect/FIRRTL/AnnotationDetails.h"
 #include "circt/Dialect/FIRRTL/FIRParser.h"
@@ -33,6 +35,14 @@
 #define DEBUG_TYPE "omir"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_EMITOMIR
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 using mlir::LocationAttr;
 using mlir::UnitAttr;
@@ -59,7 +69,7 @@ struct Tracker {
   bool hasFieldID() { return fieldID > 0; }
 };
 
-class EmitOMIRPass : public EmitOMIRBase<EmitOMIRPass> {
+class EmitOMIRPass : public circt::firrtl::impl::EmitOMIRBase<EmitOMIRPass> {
 public:
   using EmitOMIRBase::outputFilename;
 

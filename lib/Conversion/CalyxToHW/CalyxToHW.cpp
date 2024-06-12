@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "circt/Conversion/CalyxToHW.h"
-#include "../PassDetail.h"
+#include "mlir/Pass/Pass.h"
 #include "circt/Dialect/Calyx/CalyxOps.h"
 #include "circt/Dialect/Comb/CombDialect.h"
 #include "circt/Dialect/Comb/CombOps.h"
@@ -26,6 +26,12 @@
 #include "llvm/ADT/TypeSwitch.h"
 
 using namespace mlir;
+
+namespace circt {
+#define GEN_PASS_DEF_CALYXTOHW
+#include "circt/Conversion/Passes.h.inc"
+} // namespace circt
+
 using namespace circt;
 using namespace circt::calyx;
 using namespace circt::comb;
@@ -443,7 +449,7 @@ private:
 /// Pass entrypoint.
 
 namespace {
-class CalyxToHWPass : public CalyxToHWBase<CalyxToHWPass> {
+class CalyxToHWPass : public circt::impl::CalyxToHWBase<CalyxToHWPass> {
 public:
   void runOnOperation() override;
 

@@ -11,7 +11,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetail.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/SV/SVPasses.h"
+#include "circt/Dialect/SV/SVOps.h"
 #include "circt/Dialect/HW/HWInstanceGraph.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/SV/SVPasses.h"
@@ -20,6 +22,14 @@
 #include "llvm/Support/Process.h"
 
 using namespace circt;
+
+namespace circt {
+namespace sv {
+#define GEN_PASS_DEF_SVTRACEIVERILOG
+#include "circt/Dialect/SV/SVPasses.h.inc"
+} // namespace sv
+} // namespace circt
+
 using namespace sv;
 using namespace hw;
 
@@ -30,7 +40,7 @@ using namespace hw;
 namespace {
 
 struct SVTraceIVerilogPass
-    : public sv::SVTraceIVerilogBase<SVTraceIVerilogPass> {
+    : public circt::sv::impl::SVTraceIVerilogBase<SVTraceIVerilogPass> {
   void runOnOperation() override;
 };
 

@@ -6,7 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/Ibis/IbisPasses.h"
+#include "circt/Dialect/Ibis/IbisOps.h"
 
 #include "circt/Dialect/Ibis/IbisDialect.h"
 #include "circt/Dialect/Ibis/IbisOps.h"
@@ -22,12 +24,20 @@
 #include <iterator>
 
 using namespace mlir;
+
+namespace circt {
+namespace ibis {
+#define GEN_PASS_DEF_IBISINLINESBLOCKS
+#include "circt/Dialect/Ibis/IbisPasses.h.inc"
+} // namespace ibis
+} // namespace circt
+
 using namespace circt;
 using namespace ibis;
 
 namespace {
 
-struct InlineSBlocksPass : public IbisInlineSBlocksBase<InlineSBlocksPass> {
+struct InlineSBlocksPass : public circt::ibis::impl::IbisInlineSBlocksBase<InlineSBlocksPass> {
   void runOnOperation() override;
 };
 

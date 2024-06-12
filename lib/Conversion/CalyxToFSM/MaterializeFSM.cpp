@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "../PassDetail.h"
+#include "mlir/Pass/Pass.h"
 #include "circt/Conversion/CalyxToFSM.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/FSM/FSMGraph.h"
@@ -20,6 +20,12 @@
 #include "llvm/ADT/STLExtras.h"
 
 using namespace circt;
+
+namespace circt {
+#define GEN_PASS_DEF_MATERIALIZECALYXTOFSM
+#include "circt/Conversion/Passes.h.inc"
+} // namespace circt
+
 using namespace calyx;
 using namespace mlir;
 using namespace fsm;
@@ -27,7 +33,7 @@ using namespace fsm;
 namespace {
 
 struct MaterializeCalyxToFSMPass
-    : public MaterializeCalyxToFSMBase<MaterializeCalyxToFSMPass> {
+    : public circt::impl::MaterializeCalyxToFSMBase<MaterializeCalyxToFSMPass> {
   void runOnOperation() override;
 
   /// Assigns the 'fsm.output' operation of the provided 'state' to enabled the

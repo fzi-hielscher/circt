@@ -9,7 +9,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/AnnotationDetails.h"
 #include "circt/Dialect/FIRRTL/FIRRTLInstanceGraph.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
@@ -29,6 +31,14 @@
 #include <set>
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_LOWERMEMORY
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 
 // Extract all the relevant attributes from the MemOp and return the FirMemory.
@@ -93,7 +103,7 @@ FirMemory getSummary(MemOp op) {
 }
 
 namespace {
-struct LowerMemoryPass : public LowerMemoryBase<LowerMemoryPass> {
+struct LowerMemoryPass : public circt::firrtl::impl::LowerMemoryBase<LowerMemoryPass> {
 
   /// Get the cached namespace for a module.
   hw::InnerSymbolNamespace &getModuleNamespace(FModuleLike module) {

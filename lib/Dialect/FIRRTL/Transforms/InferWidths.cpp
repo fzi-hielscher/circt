@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLTypes.h"
@@ -34,6 +36,14 @@
 #define DEBUG_TYPE "infer-widths"
 
 using mlir::InferTypeOpInterface;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_INFERWIDTHS
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using mlir::WalkOrder;
 
 using namespace circt;
@@ -2335,7 +2345,7 @@ struct DenseMapInfo<InternedSlot<T>> {
 //===----------------------------------------------------------------------===//
 
 namespace {
-class InferWidthsPass : public InferWidthsBase<InferWidthsPass> {
+class InferWidthsPass : public circt::firrtl::impl::InferWidthsBase<InferWidthsPass> {
   void runOnOperation() override;
 };
 } // namespace

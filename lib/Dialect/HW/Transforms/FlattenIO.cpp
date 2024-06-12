@@ -6,13 +6,23 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/HW/HWPasses.h"
+#include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/HW/HWPasses.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "llvm/ADT/TypeSwitch.h"
 
 using namespace mlir;
+
+namespace circt {
+namespace hw {
+#define GEN_PASS_DEF_FLATTENIO
+#include "circt/Dialect/HW/Passes.h.inc"
+} // namespace hw
+} // namespace circt
+
 using namespace circt;
 
 static bool isStructType(Type type) {
@@ -483,7 +493,7 @@ static bool flattenIO(ModuleOp module, bool recursive,
 
 namespace {
 
-class FlattenIOPass : public circt::hw::FlattenIOBase<FlattenIOPass> {
+class FlattenIOPass : public circt::hw::impl::FlattenIOBase<FlattenIOPass> {
 public:
   FlattenIOPass(bool recursiveFlag, bool flattenExternFlag, char join) {
     recursive = recursiveFlag;

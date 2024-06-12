@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "circt/Conversion/HWToLLHD.h"
-#include "../PassDetail.h"
+#include "mlir/Pass/Pass.h"
 #include "circt/Dialect/Comb/CombDialect.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWDialect.h"
@@ -23,6 +23,12 @@
 #include "mlir/Transforms/DialectConversion.h"
 
 using namespace circt;
+
+namespace circt {
+#define GEN_PASS_DEF_CONVERTHWTOLLHD
+#include "circt/Conversion/Passes.h.inc"
+} // namespace circt
+
 using namespace llhd;
 using namespace hw;
 using namespace comb;
@@ -270,7 +276,7 @@ struct ConvertInstance : public OpConversionPattern<InstanceOp> {
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct HWToLLHDPass : public ConvertHWToLLHDBase<HWToLLHDPass> {
+struct HWToLLHDPass : public circt::impl::ConvertHWToLLHDBase<HWToLLHDPass> {
   void runOnOperation() override;
 };
 

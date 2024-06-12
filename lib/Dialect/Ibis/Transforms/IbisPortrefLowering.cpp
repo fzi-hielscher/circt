@@ -6,7 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/Ibis/IbisPasses.h"
+#include "circt/Dialect/Ibis/IbisOps.h"
 
 #include "circt/Dialect/Ibis/IbisDialect.h"
 #include "circt/Dialect/Ibis/IbisOps.h"
@@ -21,6 +23,14 @@
 #define DEBUG_TYPE "ibis-lower-portrefs"
 
 using namespace mlir;
+
+namespace circt {
+namespace ibis {
+#define GEN_PASS_DEF_IBISPORTREFLOWERING
+#include "circt/Dialect/Ibis/IbisPasses.h.inc"
+} // namespace ibis
+} // namespace circt
+
 using namespace circt;
 using namespace ibis;
 
@@ -357,7 +367,7 @@ class GetPortConversionPattern : public OpConversionPattern<GetPortOp> {
 };
 
 struct PortrefLoweringPass
-    : public IbisPortrefLoweringBase<PortrefLoweringPass> {
+    : public circt::ibis::impl::IbisPortrefLoweringBase<PortrefLoweringPass> {
   void runOnOperation() override;
 };
 

@@ -24,6 +24,14 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 using namespace circt;
+
+namespace circt {
+namespace msft {
+#define GEN_PASS_DEF_LOWERINSTANCES
+#include "circt/Dialect/MSFT/MSFTPasses.h.inc"
+} // namespace msft
+} // namespace circt
+
 using namespace msft;
 
 //===----------------------------------------------------------------------===//
@@ -31,7 +39,7 @@ using namespace msft;
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct LowerInstancesPass : public LowerInstancesBase<LowerInstancesPass> {
+struct LowerInstancesPass : public circt::msft::impl::LowerInstancesBase<LowerInstancesPass> {
   void runOnOperation() override;
 
   LogicalResult lower(DynamicInstanceOp inst, InstanceHierarchyOp hier,

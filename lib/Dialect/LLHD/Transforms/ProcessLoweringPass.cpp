@@ -10,19 +10,28 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/LLHD/Transforms/Passes.h"
 #include "circt/Dialect/LLHD/IR/LLHDOps.h"
 #include "circt/Dialect/LLHD/Transforms/Passes.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/IR/Visitors.h"
 
 using namespace mlir;
+
+namespace circt {
+namespace llhd {
+#define GEN_PASS_DEF_PROCESSLOWERING
+#include "circt/Dialect/LLHD/Transforms/Passes.h.inc"
+} // namespace llhd
+} // namespace circt
+
 using namespace circt;
 
 namespace {
 
 struct ProcessLoweringPass
-    : public llhd::ProcessLoweringBase<ProcessLoweringPass> {
+    : public circt::llhd::impl::ProcessLoweringBase<ProcessLoweringPass> {
   void runOnOperation() override;
 };
 

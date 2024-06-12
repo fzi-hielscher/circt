@@ -6,7 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/Ibis/IbisPasses.h"
+#include "circt/Dialect/Ibis/IbisOps.h"
 
 #include "circt/Dialect/Ibis/IbisDialect.h"
 #include "circt/Dialect/Ibis/IbisOps.h"
@@ -17,11 +19,19 @@
 #include "mlir/Transforms/DialectConversion.h"
 
 using namespace circt;
+
+namespace circt {
+namespace ibis {
+#define GEN_PASS_DEF_IBISREBLOCK
+#include "circt/Dialect/Ibis/IbisPasses.h.inc"
+} // namespace ibis
+} // namespace circt
+
 using namespace ibis;
 
 namespace {
 
-struct ReblockPass : public IbisReblockBase<ReblockPass> {
+struct ReblockPass : public circt::ibis::impl::IbisReblockBase<ReblockPass> {
   void runOnOperation() override;
 
   // Transforms an `ibis.sblock.inline.begin/end` scope into an `ibis.sblock`.

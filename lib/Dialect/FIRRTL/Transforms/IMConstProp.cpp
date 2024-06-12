@@ -11,7 +11,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLAnnotations.h"
 #include "circt/Dialect/FIRRTL/FIRRTLAttributes.h"
 #include "circt/Dialect/FIRRTL/FIRRTLFieldSource.h"
@@ -26,6 +28,14 @@
 #include "llvm/Support/ScopedPrinter.h"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_IMCONSTPROP
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 
 #define DEBUG_TYPE "IMCP"
@@ -174,7 +184,7 @@ static llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
 }
 
 namespace {
-struct IMConstPropPass : public IMConstPropBase<IMConstPropPass> {
+struct IMConstPropPass : public circt::firrtl::impl::IMConstPropBase<IMConstPropPass> {
 
   void runOnOperation() override;
   void rewriteModuleBody(FModuleOp module);

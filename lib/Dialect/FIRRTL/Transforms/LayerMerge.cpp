@@ -11,18 +11,28 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "mlir/IR/PatternMatch.h"
 #include "llvm/Support/Debug.h"
 
 #define DEBUG_TYPE "firrtl-layer-merge"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_LAYERMERGE
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 
 namespace {
 /// A pass that merges layer blocks referencing the same layer definition.
-struct LayerMerge : public LayerMergeBase<LayerMerge> {
+struct LayerMerge : public circt::firrtl::impl::LayerMergeBase<LayerMerge> {
   void runOnOperation() override;
 };
 } // namespace

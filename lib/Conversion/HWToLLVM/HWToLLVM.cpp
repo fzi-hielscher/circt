@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "circt/Conversion/HWToLLVM.h"
-#include "../PassDetail.h"
+#include "mlir/Pass/Pass.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Support/LLVM.h"
 #include "circt/Support/Namespace.h"
@@ -23,6 +23,12 @@
 #include "llvm/ADT/TypeSwitch.h"
 
 using namespace mlir;
+
+namespace circt {
+#define GEN_PASS_DEF_CONVERTHWTOLLVM
+#include "circt/Conversion/Passes.h.inc"
+} // namespace circt
+
 using namespace circt;
 
 //===----------------------------------------------------------------------===//
@@ -623,7 +629,7 @@ static Type convertStructType(hw::StructType type,
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct HWToLLVMLoweringPass : public ConvertHWToLLVMBase<HWToLLVMLoweringPass> {
+struct HWToLLVMLoweringPass : public circt::impl::ConvertHWToLLVMBase<HWToLLVMLoweringPass> {
   void runOnOperation() override;
 };
 } // namespace

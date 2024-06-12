@@ -6,7 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetail.h"
+#include "mlir/Pass/Pass.h"
 #include "circt/Transforms/Passes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Operation.h"
@@ -16,6 +16,12 @@
 
 using namespace mlir;
 
+namespace circt {
+#define GEN_PASS_DEF_STRIPDEBUGINFOWITHPRED
+#include "circt/Transforms/Passes.h.inc"
+} // namespace circt
+
+
 template <typename OpOrBlockArgument>
 static void updateLocIfChanged(OpOrBlockArgument *op, Location newLoc) {
   if (op->getLoc() != newLoc)
@@ -24,7 +30,7 @@ static void updateLocIfChanged(OpOrBlockArgument *op, Location newLoc) {
 
 namespace {
 struct StripDebugInfoWithPred
-    : public circt::StripDebugInfoWithPredBase<StripDebugInfoWithPred> {
+    : public circt::impl::StripDebugInfoWithPredBase<StripDebugInfoWithPred> {
   StripDebugInfoWithPred(const std::function<bool(mlir::Location)> &pred)
       : pred(pred) {}
   void runOnOperation() override;

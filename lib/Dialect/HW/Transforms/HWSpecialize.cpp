@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/HW/HWPasses.h"
+#include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWAttributes.h"
 #include "circt/Dialect/HW/HWOps.h"
@@ -25,6 +27,14 @@
 #include "llvm/ADT/TypeSwitch.h"
 
 using namespace llvm;
+
+namespace circt {
+namespace hw {
+#define GEN_PASS_DEF_HWSPECIALIZE
+#include "circt/Dialect/HW/Passes.h.inc"
+} // namespace hw
+} // namespace circt
+
 using namespace mlir;
 using namespace circt;
 using namespace hw;
@@ -189,7 +199,7 @@ struct ParametricTypeConversionPattern : public ConversionPattern {
   ArrayAttr parameters;
 };
 
-struct HWSpecializePass : public hw::HWSpecializeBase<HWSpecializePass> {
+struct HWSpecializePass : public circt::hw::impl::HWSpecializeBase<HWSpecializePass> {
   void runOnOperation() override;
 };
 

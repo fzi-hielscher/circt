@@ -6,7 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/Ibis/IbisPasses.h"
+#include "circt/Dialect/Ibis/IbisOps.h"
 
 #include "circt/Dialect/Ibis/IbisDialect.h"
 #include "circt/Dialect/Ibis/IbisOps.h"
@@ -18,6 +20,14 @@
 #include "mlir/Transforms/DialectConversion.h"
 
 using namespace circt;
+
+namespace circt {
+namespace ibis {
+#define GEN_PASS_DEF_IBISCONVERTMETHODSTOCONTAINERS
+#include "circt/Dialect/Ibis/IbisPasses.h.inc"
+} // namespace ibis
+} // namespace circt
+
 using namespace ibis;
 
 namespace {
@@ -67,7 +77,7 @@ struct DataflowMethodOpConversion
 };
 
 struct MethodsToContainersPass
-    : public IbisConvertMethodsToContainersBase<MethodsToContainersPass> {
+    : public circt::ibis::impl::IbisConvertMethodsToContainersBase<MethodsToContainersPass> {
   void runOnOperation() override;
 };
 } // anonymous namespace

@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "circt/Conversion/AffineToLoopSchedule.h"
-#include "../PassDetail.h"
+#include "mlir/Pass/Pass.h"
 #include "circt/Analysis/DependenceAnalysis.h"
 #include "circt/Analysis/SchedulingAnalysis.h"
 #include "circt/Dialect/LoopSchedule/LoopScheduleOps.h"
@@ -39,6 +39,12 @@
 #define DEBUG_TYPE "affine-to-loopschedule"
 
 using namespace mlir;
+
+namespace circt {
+#define GEN_PASS_DEF_AFFINETOLOOPSCHEDULE
+#include "circt/Conversion/Passes.h.inc"
+} // namespace circt
+
 using namespace mlir::arith;
 using namespace mlir::memref;
 using namespace mlir::scf;
@@ -52,7 +58,7 @@ using namespace circt::loopschedule;
 namespace {
 
 struct AffineToLoopSchedule
-    : public AffineToLoopScheduleBase<AffineToLoopSchedule> {
+    : public circt::impl::AffineToLoopScheduleBase<AffineToLoopSchedule> {
   void runOnOperation() override;
 
 private:

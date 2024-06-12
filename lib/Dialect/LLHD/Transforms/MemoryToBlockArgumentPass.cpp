@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/LLHD/Transforms/Passes.h"
+#include "circt/Dialect/LLHD/IR/LLHDOps.h"
 #include "circt/Dialect/LLHD/Transforms/Passes.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -19,10 +21,18 @@
 
 using namespace circt;
 
+namespace circt {
+namespace llhd {
+#define GEN_PASS_DEF_MEMORYTOBLOCKARGUMENT
+#include "circt/Dialect/LLHD/Transforms/Passes.h.inc"
+} // namespace llhd
+} // namespace circt
+
+
 namespace {
 
 struct MemoryToBlockArgumentPass
-    : public llhd::MemoryToBlockArgumentBase<MemoryToBlockArgumentPass> {
+    : public circt::llhd::impl::MemoryToBlockArgumentBase<MemoryToBlockArgumentPass> {
   void runOnOperation() override;
 };
 

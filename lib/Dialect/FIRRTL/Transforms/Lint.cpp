@@ -6,16 +6,26 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "mlir/IR/Threading.h"
 #include "llvm/ADT/APSInt.h"
 
 using namespace mlir;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_LOWERINTRINSICS
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace circt;
 using namespace firrtl;
 
 namespace {
-struct LintPass : public LintBase<LintPass> {
+struct LintPass : public circt::firrtl::impl::LowerIntrinsicsBase<LintPass> {
   void runOnOperation() override {
     auto fModule = getOperation();
     auto walkResult = fModule.walk<WalkOrder::PreOrder>([&](Operation *op) {

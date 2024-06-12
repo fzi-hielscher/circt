@@ -13,10 +13,18 @@
 #include "circt/Dialect/ESI/ESIPasses.h"
 
 using namespace circt;
+
+namespace circt {
+namespace esi {
+#define GEN_PASS_DEF_ESIAPPIDHIER
+#include "circt/Dialect/ESI/ESIPasses.h.inc"
+} // namespace esi
+} // namespace circt
+
 using namespace esi;
 
 namespace {
-struct ESIAppIDHierPass : public ESIAppIDHierBase<ESIAppIDHierPass> {
+struct ESIAppIDHierPass : public circt::esi::impl::ESIAppIDHierBase<ESIAppIDHierPass> {
   void runOnOperation() override;
 
 private:

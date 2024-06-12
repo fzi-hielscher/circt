@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/AnnotationDetails.h"
 #include "circt/Dialect/FIRRTL/FIRRTLInstanceGraph.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
@@ -33,6 +35,14 @@
 #define DEBUG_TYPE "infer-resets"
 
 using circt::igraph::InstanceOpInterface;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_INFERRESETS
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using circt::igraph::InstancePath;
 using circt::igraph::InstancePathCache;
 using llvm::BumpPtrAllocator;
@@ -400,7 +410,7 @@ namespace {
 ///    module's instantiations have that port connected to the desired signal
 ///    already.
 ///
-struct InferResetsPass : public InferResetsBase<InferResetsPass> {
+struct InferResetsPass : public circt::firrtl::impl::InferResetsBase<InferResetsPass> {
   void runOnOperation() override;
   void runOnOperationInner();
 

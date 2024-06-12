@@ -10,16 +10,32 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/HW/HWOps.h"
+#include "circt/Dialect/SSP/SSPAttributes.h"
+#include "circt/Dialect/SSP/SSPOps.h"
+#include "circt/Dialect/SSP/SSPPasses.h"
+#include "circt/Dialect/SSP/Utilities.h"
+#include "circt/Scheduling/Problems.h"
+#include "circt/Dialect/SSP/SSPPasses.h"
+#include "circt/Dialect/SSP/SSPOps.h"
 
 #include "circt/Scheduling/Utilities.h"
 
 using namespace circt;
+
+namespace circt {
+namespace ssp {
+#define GEN_PASS_DEF_PRINT
+#include "circt/Dialect/SSP/SSPPasses.h.inc"
+} // namespace ssp
+} // namespace circt
+
 using namespace scheduling;
 using namespace ssp;
 
 namespace {
-struct PrintPass : public PrintBase<PrintPass> {
+struct PrintPass : public circt::ssp::impl::PrintBase<PrintPass> {
   explicit PrintPass(raw_ostream &os) : os(os) {}
   void runOnOperation() override;
   raw_ostream &os;

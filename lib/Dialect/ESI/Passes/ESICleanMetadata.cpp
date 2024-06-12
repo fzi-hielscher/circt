@@ -14,11 +14,19 @@
 #include "circt/Dialect/ESI/ESIPasses.h"
 
 using namespace circt;
+
+namespace circt {
+namespace esi {
+#define GEN_PASS_DEF_ESICLEANMETADATA
+#include "circt/Dialect/ESI/ESIPasses.h.inc"
+} // namespace esi
+} // namespace circt
+
 using namespace esi;
 
 namespace {
 struct ESICleanMetadataPass
-    : public ESICleanMetadataBase<ESICleanMetadataPass> {
+    : public circt::esi::impl::ESICleanMetadataBase<ESICleanMetadataPass> {
   void runOnOperation() override;
 };
 } // anonymous namespace

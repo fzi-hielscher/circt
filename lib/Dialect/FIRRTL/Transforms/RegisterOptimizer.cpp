@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 
 #include "circt/Dialect/FIRRTL/Passes.h"
 #include "circt/Support/Debug.h"
@@ -21,6 +23,14 @@
 #define DEBUG_TYPE "firrtl-register-optimizer"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_REGISTEROPTIMIZER
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 
 // Instantiated for RegOp and RegResetOp
@@ -37,7 +47,7 @@ namespace {
 //===----------------------------------------------------------------------===//
 
 struct RegisterOptimizerPass
-    : public RegisterOptimizerBase<RegisterOptimizerPass> {
+    : public circt::firrtl::impl::RegisterOptimizerBase<RegisterOptimizerPass> {
   void runOnOperation() override;
   void checkRegReset(mlir::DominanceInfo &dom,
                      SmallVector<Operation *> &toErase, RegResetOp reg);

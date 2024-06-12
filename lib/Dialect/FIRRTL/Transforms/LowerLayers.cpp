@@ -9,7 +9,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/AnnotationDetails.h"
 #include "circt/Dialect/FIRRTL/FIRRTLUtils.h"
 #include "circt/Dialect/FIRRTL/Namespace.h"
@@ -23,6 +25,14 @@
 #define DEBUG_TYPE "firrtl-lower-layers"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_LOWERLAYERS
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 
 //===----------------------------------------------------------------------===//
@@ -118,7 +128,7 @@ static SmallString<32> fileNameForLayer(StringRef circuitName,
 // LowerLayersPass
 //===----------------------------------------------------------------------===//
 
-class LowerLayersPass : public LowerLayersBase<LowerLayersPass> {
+class LowerLayersPass : public circt::firrtl::impl::LowerLayersBase<LowerLayersPass> {
   /// Safely build a new module with a given namehint.  This handles geting a
   /// lock to modify the top-level circuit.
   FModuleOp buildNewModule(OpBuilder &builder, Location location,

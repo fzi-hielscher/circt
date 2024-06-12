@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "circt/Conversion/MooreToCore.h"
-#include "../PassDetail.h"
+#include "mlir/Pass/Pass.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/LLHD/IR/LLHDOps.h"
@@ -23,6 +23,12 @@
 #include "llvm/ADT/TypeSwitch.h"
 
 using namespace mlir;
+
+namespace circt {
+#define GEN_PASS_DEF_CONVERTMOORETOCORE
+#include "circt/Conversion/Passes.h.inc"
+} // namespace circt
+
 using namespace circt;
 using namespace moore;
 
@@ -658,7 +664,7 @@ static void populateOpConversion(RewritePatternSet &patterns,
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct MooreToCorePass : public ConvertMooreToCoreBase<MooreToCorePass> {
+struct MooreToCorePass : public circt::impl::ConvertMooreToCoreBase<MooreToCorePass> {
   void runOnOperation() override;
 };
 } // namespace

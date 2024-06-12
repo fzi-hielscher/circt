@@ -10,13 +10,29 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/HW/HWOps.h"
+#include "circt/Dialect/SSP/SSPPasses.h"
+#include "circt/Dialect/SSP/SSPAttributes.h"
+#include "circt/Dialect/SSP/SSPOps.h"
+#include "circt/Dialect/SSP/SSPPasses.h"
+#include "circt/Dialect/SSP/Utilities.h"
+#include "circt/Scheduling/Problems.h"
+#include "circt/Dialect/SSP/SSPOps.h"
 
 #include "circt/Scheduling/Algorithms.h"
 
 #include "llvm/ADT/StringExtras.h"
 
 using namespace circt;
+
+namespace circt {
+namespace ssp {
+#define GEN_PASS_DEF_SCHEDULE
+#include "circt/Dialect/SSP/SSPPasses.h.inc"
+} // namespace ssp
+} // namespace circt
+
 using namespace scheduling;
 using namespace ssp;
 
@@ -248,7 +264,7 @@ static InstanceOp scheduleWith(InstanceOp instOp, StringRef scheduler,
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct SchedulePass : public ScheduleBase<SchedulePass> {
+struct SchedulePass : public circt::ssp::impl::ScheduleBase<SchedulePass> {
   void runOnOperation() override;
 };
 } // end anonymous namespace

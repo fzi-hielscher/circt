@@ -26,6 +26,14 @@
 #include <utility>
 
 using namespace circt;
+
+namespace circt {
+namespace esi {
+#define GEN_PASS_DEF_ESICONNECTSERVICES
+#include "circt/Dialect/ESI/ESIPasses.h.inc"
+} // namespace esi
+} // namespace circt
+
 using namespace circt::esi;
 
 LogicalResult
@@ -311,7 +319,7 @@ namespace {
 /// instantiation. Wires up the ports and generates a generation request to
 /// call a user-specified generator.
 struct ESIConnectServicesPass
-    : public ESIConnectServicesBase<ESIConnectServicesPass>,
+    : public circt::esi::impl::ESIConnectServicesBase<ESIConnectServicesPass>,
       msft::PassCommon {
 
   ESIConnectServicesPass(const ServiceGeneratorDispatcher &gen)

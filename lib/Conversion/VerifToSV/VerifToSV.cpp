@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "circt/Conversion/VerifToSV.h"
-#include "../PassDetail.h"
+#include "mlir/Pass/Pass.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWOpInterfaces.h"
 #include "circt/Dialect/HW/HWOps.h"
@@ -21,6 +21,12 @@
 #include "llvm/ADT/TypeSwitch.h"
 
 using namespace mlir;
+
+namespace circt {
+#define GEN_PASS_DEF_LOWERVERIFTOSV
+#include "circt/Conversion/Passes.h.inc"
+} // namespace circt
+
 using namespace circt;
 using namespace sv;
 using namespace verif;
@@ -130,7 +136,7 @@ struct HasBeenResetConversion : public OpConversionPattern<HasBeenResetOp> {
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct VerifToSVPass : public LowerVerifToSVBase<VerifToSVPass> {
+struct VerifToSVPass : public circt::impl::LowerVerifToSVBase<VerifToSVPass> {
   void runOnOperation() override;
 };
 } // namespace

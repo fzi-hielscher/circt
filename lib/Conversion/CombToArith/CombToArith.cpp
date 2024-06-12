@@ -7,13 +7,19 @@
 //===----------------------------------------------------------------------===//
 
 #include "circt/Conversion/CombToArith.h"
-#include "../PassDetail.h"
+#include "mlir/Pass/Pass.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Transforms/DialectConversion.h"
 
 using namespace circt;
+
+namespace circt {
+#define GEN_PASS_DEF_CONVERTCOMBTOARITH
+#include "circt/Conversion/Passes.h.inc"
+} // namespace circt
+
 using namespace hw;
 using namespace comb;
 using namespace mlir;
@@ -294,7 +300,7 @@ struct ShrSOpConversion : OpConversionPattern<ShrSOp> {
 
 namespace {
 struct ConvertCombToArithPass
-    : public ConvertCombToArithBase<ConvertCombToArithPass> {
+    : public circt::impl::ConvertCombToArithBase<ConvertCombToArithPass> {
   void runOnOperation() override;
 };
 } // namespace

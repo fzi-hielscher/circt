@@ -12,7 +12,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 
 #include "circt/Dialect/FIRRTL/AnnotationDetails.h"
 #include "circt/Dialect/FIRRTL/CHIRRTLDialect.h"
@@ -39,6 +41,14 @@
 #define DEBUG_TYPE "lower-annos"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_LOWERFIRRTLANNOTATIONS
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 using namespace chirrtl;
 
@@ -539,7 +549,7 @@ static const AnnoRecord *getAnnotationHandler(StringRef annoStr,
 
 namespace {
 struct LowerAnnotationsPass
-    : public LowerFIRRTLAnnotationsBase<LowerAnnotationsPass> {
+    : public circt::firrtl::impl::LowerFIRRTLAnnotationsBase<LowerAnnotationsPass> {
   void runOnOperation() override;
   LogicalResult applyAnnotation(DictionaryAttr anno, ApplyState &state);
   LogicalResult legacyToWiringProblems(ApplyState &state);

@@ -11,7 +11,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLAnnotations.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLTypes.h"
@@ -29,6 +31,14 @@
 #include "llvm/Support/ErrorHandling.h"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_VBTOBV
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 
 //===----------------------------------------------------------------------===//
@@ -967,7 +977,7 @@ LogicalResult Visitor::visit(FModuleOp op) {
 //===----------------------------------------------------------------------===//
 
 namespace {
-class VBToBVPass : public VBToBVBase<VBToBVPass> {
+class VBToBVPass : public circt::firrtl::impl::VBToBVBase<VBToBVPass> {
   void runOnOperation() override;
 };
 } // end anonymous namespace

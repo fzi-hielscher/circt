@@ -30,7 +30,9 @@
 // and continue the analysis through the instance graph.
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/CHIRRTLDialect.h"
 #include "circt/Dialect/FIRRTL/FIRRTLInstanceGraph.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
@@ -44,6 +46,14 @@
 #define DEBUG_TYPE "check-comb-loops"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_CHECKCOMBLOOPS
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 
 using DrivenBysMapType = DenseMap<FieldRef, DenseSet<FieldRef>>;
@@ -694,7 +704,7 @@ private:
 /// combinational cycles. To capture the cross-module combinational cycles,
 /// this pass inlines the combinational paths between IOs of its
 /// subinstances into a subgraph and encodes them in `modulePortPaths`.
-class CheckCombLoopsPass : public CheckCombLoopsBase<CheckCombLoopsPass> {
+class CheckCombLoopsPass : public circt::firrtl::impl::CheckCombLoopsBase<CheckCombLoopsPass> {
 public:
   void runOnOperation() override {
     auto &instanceGraph = getAnalysis<InstanceGraph>();

@@ -13,7 +13,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/Emit/EmitOps.h"
 #include "circt/Dialect/FIRRTL/AnnotationDetails.h"
 #include "circt/Dialect/FIRRTL/FIRRTLAnnotations.h"
@@ -36,6 +38,14 @@
 #define DEBUG_TYPE "firrtl-blackbox-reader"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_BLACKBOXREADER
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 
 //===----------------------------------------------------------------------===//
@@ -89,7 +99,7 @@ struct OutputFileInfo {
   bool excludeFromFileList;
 };
 
-struct BlackBoxReaderPass : public BlackBoxReaderBase<BlackBoxReaderPass> {
+struct BlackBoxReaderPass : public circt::firrtl::impl::BlackBoxReaderBase<BlackBoxReaderPass> {
   void runOnOperation() override;
   bool runOnAnnotation(Operation *op, Annotation anno, OpBuilder &builder,
                        bool isCover, AnnotationInfo &annotationInfo);

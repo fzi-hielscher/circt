@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/Emit/EmitOps.h"
 #include "circt/Dialect/FIRRTL/AnnotationDetails.h"
 #include "circt/Dialect/FIRRTL/FIRRTLAnnotations.h"
@@ -31,6 +33,14 @@
 #include "llvm/Support/Path.h"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_CREATESIFIVEMETADATA
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 
 namespace {
@@ -438,7 +448,7 @@ struct ObjectModelIR {
 }; // namespace
 
 class CreateSiFiveMetadataPass
-    : public CreateSiFiveMetadataBase<CreateSiFiveMetadataPass> {
+    : public circt::firrtl::impl::CreateSiFiveMetadataBase<CreateSiFiveMetadataPass> {
   LogicalResult emitRetimeModulesMetadata(ObjectModelIR &omir);
   LogicalResult emitSitestBlackboxMetadata(ObjectModelIR &omir);
   LogicalResult emitMemoryMetadata(ObjectModelIR &omir);

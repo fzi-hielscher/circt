@@ -20,6 +20,14 @@
 #include "mlir/Transforms/DialectConversion.h"
 
 using namespace circt;
+
+namespace circt {
+namespace esi {
+#define GEN_PASS_DEF_LOWERESITOPHYSICAL
+#include "circt/Dialect/ESI/ESIPasses.h.inc"
+} // namespace esi
+} // namespace circt
+
 using namespace circt::esi;
 using namespace circt::esi::detail;
 using namespace circt::hw;
@@ -169,7 +177,7 @@ PureModuleLowering::matchAndRewrite(ESIPureModuleOp pureMod, OpAdaptor adaptor,
 
 namespace {
 /// Run all the physical lowerings.
-struct ESIToPhysicalPass : public LowerESIToPhysicalBase<ESIToPhysicalPass> {
+struct ESIToPhysicalPass : public circt::esi::impl::LowerESIToPhysicalBase<ESIToPhysicalPass> {
   void runOnOperation() override;
 };
 } // anonymous namespace

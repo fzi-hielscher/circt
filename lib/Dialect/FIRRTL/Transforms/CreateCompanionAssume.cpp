@@ -10,17 +10,27 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLUtils.h"
 #include "circt/Dialect/FIRRTL/Passes.h"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_CREATECOMPANIONASSUME
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 
 namespace {
 struct CreateCompanionAssumePass
-    : public CreateCompanionAssumeBase<CreateCompanionAssumePass> {
+    : public circt::firrtl::impl::CreateCompanionAssumeBase<CreateCompanionAssumePass> {
   void runOnOperation() override {
     StringAttr emptyMessage = StringAttr::get(&getContext(), "");
     getOperation().walk([&](firrtl::AssertOp assertOp) {

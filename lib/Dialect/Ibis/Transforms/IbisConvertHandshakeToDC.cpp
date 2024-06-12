@@ -6,7 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/Ibis/IbisPasses.h"
+#include "circt/Dialect/Ibis/IbisOps.h"
 
 #include "circt/Conversion/HandshakeToDC.h"
 #include "circt/Dialect/DC/DCTypes.h"
@@ -22,13 +24,21 @@
 #include "circt/Conversion/HandshakeToDC.h"
 
 using namespace mlir;
+
+namespace circt {
+namespace ibis {
+#define GEN_PASS_DEF_IBISCONVERTHANDSHAKETODC
+#include "circt/Dialect/Ibis/IbisPasses.h.inc"
+} // namespace ibis
+} // namespace circt
+
 using namespace circt;
 using namespace ibis;
 
 namespace {
 
 struct ConvertHandshakeToDCPass
-    : public IbisConvertHandshakeToDCBase<ConvertHandshakeToDCPass> {
+    : public circt::ibis::impl::IbisConvertHandshakeToDCBase<ConvertHandshakeToDCPass> {
   void runOnOperation() override;
 };
 

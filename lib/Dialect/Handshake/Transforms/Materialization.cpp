@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/Handshake/HandshakePasses.h"
+#include "circt/Dialect/Handshake/HandshakeOps.h"
 #include "circt/Dialect/Handshake/HandshakeOps.h"
 #include "circt/Dialect/Handshake/HandshakePasses.h"
 #include "circt/Support/LLVM.h"
@@ -26,6 +28,15 @@
 #include "llvm/ADT/TypeSwitch.h"
 
 using namespace circt;
+
+namespace circt {
+namespace handshake {
+#define GEN_PASS_DEF_HANDSHAKEMATERIALIZEFORKSSINKS
+#define GEN_PASS_DEF_HANDSHAKEDEMATERIALIZEFORKSSINKS
+#include "circt/Dialect/Handshake/HandshakePasses.h.inc"
+} // namespace handshake
+} // namespace circt
+
 using namespace handshake;
 using namespace mlir;
 using namespace mlir::affine;
@@ -126,7 +137,7 @@ LogicalResult addSinkOps(Region &r, OpBuilder &rewriter) {
 
 namespace {
 struct HandshakeMaterializeForksSinksPass
-    : public HandshakeMaterializeForksSinksBase<
+    : public circt::handshake::impl::HandshakeMaterializeForksSinksBase<
           HandshakeMaterializeForksSinksPass> {
   void runOnOperation() override {
     handshake::FuncOp op = getOperation();
@@ -141,7 +152,7 @@ struct HandshakeMaterializeForksSinksPass
 };
 
 struct HandshakeDematerializeForksSinksPass
-    : public HandshakeDematerializeForksSinksBase<
+    : public circt::handshake::impl::HandshakeDematerializeForksSinksBase<
           HandshakeDematerializeForksSinksPass> {
   void runOnOperation() override {
     handshake::FuncOp op = getOperation();

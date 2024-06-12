@@ -10,15 +10,25 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/Passes.h"
 #include "circt/Dialect/HW/HWAttributes.h"
 #include "circt/Dialect/SV/SVOps.h"
 
 using namespace circt;
 
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_FINALIZEIR
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
+
 namespace {
-struct FinalizeIRPass : public firrtl::FinalizeIRBase<FinalizeIRPass> {
+struct FinalizeIRPass : public circt::firrtl::impl::FinalizeIRBase<FinalizeIRPass> {
   void runOnOperation() override;
 };
 } // namespace

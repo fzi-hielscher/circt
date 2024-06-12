@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/AnnotationDetails.h"
 #include "circt/Dialect/FIRRTL/FIRRTLAnnotations.h"
 #include "circt/Dialect/FIRRTL/FIRRTLInstanceGraph.h"
@@ -25,6 +27,14 @@
 #include "llvm/ADT/StringMap.h"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_PREFIXMODULES
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 
 /// This maps a FModuleOp to a list of all prefixes that need to be applied.
@@ -91,7 +101,7 @@ static StringRef getPrefix(Operation *module) {
 /// module is instantiated under two different prefix hierarchies, it will be
 /// duplicated and each module will have one prefix applied.
 namespace {
-class PrefixModulesPass : public PrefixModulesBase<PrefixModulesPass> {
+class PrefixModulesPass : public circt::firrtl::impl::PrefixModulesBase<PrefixModulesPass> {
   void removeDeadAnnotations(StringAttr moduleName, Operation *op);
   void renameModuleBody(std::string prefix, StringRef oldName,
                         FModuleOp module);

@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FSM/FSMPasses.h"
+#include "circt/Dialect/FSM/FSMOps.h"
 #include "circt/Dialect/FSM/FSMGraph.h"
 #include "circt/Dialect/FSM/FSMPasses.h"
 #include "circt/Dialect/HW/HWInstanceGraph.h"
@@ -18,10 +20,18 @@
 #include "llvm/Support/raw_ostream.h"
 
 using namespace circt;
+
+namespace circt {
+namespace fsm {
+#define GEN_PASS_DEF_PRINTFSMGRAPH
+#include "circt/Dialect/FSM/Passes.h.inc"
+} // namespace fsm
+} // namespace circt
+
 using namespace fsm;
 
 namespace {
-struct PrintFSMGraphPass : public PrintFSMGraphBase<PrintFSMGraphPass> {
+struct PrintFSMGraphPass : public circt::fsm::impl::PrintFSMGraphBase<PrintFSMGraphPass> {
   PrintFSMGraphPass(raw_ostream &os) : os(os) {}
   void runOnOperation() override {
     getOperation().walk([&](fsm::MachineOp machine) {

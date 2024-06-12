@@ -18,7 +18,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetail.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/SV/SVPasses.h"
+#include "circt/Dialect/SV/SVOps.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/SV/SVPasses.h"
@@ -29,13 +31,21 @@
 
 using namespace circt;
 
+namespace circt {
+namespace sv {
+#define GEN_PASS_DEF_PRETTIFYVERILOG
+#include "circt/Dialect/SV/SVPasses.h.inc"
+} // namespace sv
+} // namespace circt
+
+
 //===----------------------------------------------------------------------===//
 // PrettifyVerilogPass
 //===----------------------------------------------------------------------===//
 
 namespace {
 struct PrettifyVerilogPass
-    : public sv::PrettifyVerilogBase<PrettifyVerilogPass> {
+    : public circt::sv::impl::PrettifyVerilogBase<PrettifyVerilogPass> {
   void runOnOperation() override;
 
 private:

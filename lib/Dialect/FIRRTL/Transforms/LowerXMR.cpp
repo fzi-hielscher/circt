@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/Emit/EmitOps.h"
 #include "circt/Dialect/FIRRTL/FIRRTLInstanceGraph.h"
 #include "circt/Dialect/FIRRTL/FIRRTLUtils.h"
@@ -29,6 +31,14 @@
 #define DEBUG_TYPE "firrtl-lower-xmr"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_LOWERXMR
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 using hw::InnerRefAttr;
 
@@ -71,7 +81,7 @@ struct XMRNode {
 }
 } // end anonymous namespace
 
-class LowerXMRPass : public LowerXMRBase<LowerXMRPass> {
+class LowerXMRPass : public circt::firrtl::impl::LowerXMRBase<LowerXMRPass> {
 
   void runOnOperation() override {
     // Populate a CircuitNamespace that can be used to generate unique

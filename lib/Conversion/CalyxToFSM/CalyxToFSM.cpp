@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "circt/Conversion/CalyxToFSM.h"
-#include "../PassDetail.h"
+#include "mlir/Pass/Pass.h"
 #include "circt/Dialect/Calyx/CalyxOps.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/FSM/FSMDialect.h"
@@ -21,10 +21,16 @@
 #include "llvm/ADT/TypeSwitch.h"
 
 using namespace mlir;
+
+namespace circt {
+#define GEN_PASS_DEF_CALYXTOFSM
+#include "circt/Conversion/Passes.h.inc"
+} // namespace circt
+
 using namespace circt;
 using namespace calyx;
 using namespace fsm;
-using namespace sv;
+//using namespace sv;
 
 namespace {
 
@@ -343,7 +349,7 @@ void CompileInvoke::lowerInvokeOp(InvokeOp invokeOp) {
   invokeOp.erase();
 }
 
-class CalyxToFSMPass : public CalyxToFSMBase<CalyxToFSMPass> {
+class CalyxToFSMPass : public circt::impl::CalyxToFSMBase<CalyxToFSMPass> {
 public:
   void runOnOperation() override;
 }; // end anonymous namespace

@@ -11,7 +11,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/Calyx/CalyxPasses.h"
+#include "circt/Dialect/Calyx/CalyxOps.h"
 #include "circt/Dialect/Calyx/CalyxOps.h"
 #include "circt/Dialect/Calyx/CalyxPasses.h"
 #include "circt/Support/LLVM.h"
@@ -21,6 +23,15 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 using namespace circt;
+
+namespace circt {
+namespace calyx {
+#define GEN_PASS_DEF_CLKINSERTION
+#define GEN_PASS_DEF_RESETINSERTION
+#include "circt/Dialect/Calyx/CalyxPasses.h.inc"
+} // namespace calyx
+} // namespace circt
+
 using namespace calyx;
 using namespace mlir;
 
@@ -43,13 +54,13 @@ static void doPortPassthrough(ComponentOp comp, Value fromPort,
   }
 }
 
-struct ClkInsertionPass : public ClkInsertionBase<ClkInsertionPass> {
+struct ClkInsertionPass : public circt::calyx::impl::ClkInsertionBase<ClkInsertionPass> {
   void runOnOperation() override {
     doPortPassthrough(getOperation(), getOperation().getClkPort(), "clk");
   }
 };
 
-struct ResetInsertionPass : public ResetInsertionBase<ResetInsertionPass> {
+struct ResetInsertionPass : public circt::calyx::impl::ResetInsertionBase<ResetInsertionPass> {
   void runOnOperation() override {
     doPortPassthrough(getOperation(), getOperation().getResetPort(), "reset");
   }

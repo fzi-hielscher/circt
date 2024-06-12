@@ -6,7 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "../PassDetail.h"
+#include "mlir/Pass/Pass.h"
 #include "circt/Conversion/ArcToLLVM.h"
 #include "circt/Conversion/CombToLLVM.h"
 #include "circt/Conversion/HWToLLVM.h"
@@ -35,6 +35,12 @@
 #define DEBUG_TYPE "lower-arc-to-llvm"
 
 using namespace mlir;
+
+namespace circt {
+#define GEN_PASS_DEF_LOWERARCTOLLVM
+#include "circt/Conversion/Passes.h.inc"
+} // namespace circt
+
 using namespace circt;
 using namespace arc;
 using namespace hw;
@@ -549,7 +555,7 @@ struct SimEmitValueOpLowering
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct LowerArcToLLVMPass : public LowerArcToLLVMBase<LowerArcToLLVMPass> {
+struct LowerArcToLLVMPass : public circt::impl::LowerArcToLLVMBase<LowerArcToLLVMPass> {
   void runOnOperation() override;
 };
 } // namespace

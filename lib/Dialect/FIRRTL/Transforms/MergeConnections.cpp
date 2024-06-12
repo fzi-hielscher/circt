@@ -21,7 +21,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
+#include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 
 #include "circt/Dialect/FIRRTL/FIRRTLUtils.h"
 #include "circt/Dialect/FIRRTL/Passes.h"
@@ -33,6 +35,14 @@
 #define DEBUG_TYPE "firrtl-merge-connections"
 
 using namespace circt;
+
+namespace circt {
+namespace firrtl {
+#define GEN_PASS_DEF_MERGECONNECTIONS
+#include "circt/Dialect/FIRRTL/Passes.h.inc"
+} // namespace firrtl
+} // namespace circt
+
 using namespace firrtl;
 
 // Return true if value is essentially constant.
@@ -276,7 +286,7 @@ bool MergeConnection::run() {
 }
 
 struct MergeConnectionsPass
-    : public MergeConnectionsBase<MergeConnectionsPass> {
+    : public circt::firrtl::impl::MergeConnectionsBase<MergeConnectionsPass> {
   MergeConnectionsPass(bool enableAggressiveMergingFlag) {
     enableAggressiveMerging = enableAggressiveMergingFlag;
   }

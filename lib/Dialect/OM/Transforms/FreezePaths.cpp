@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetails.h"
+#include "mlir/Pass/Pass.h"
+#include "circt/Dialect/OM/OMPasses.h"
+#include "circt/Dialect/OM/OMOps.h"
 #include "circt/Dialect/HW/HWInstanceGraph.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/HW/InnerSymbolTable.h"
@@ -19,6 +21,14 @@
 #include "circt/Dialect/OM/OMPasses.h"
 
 using namespace circt;
+
+namespace circt {
+namespace om {
+#define GEN_PASS_DEF_FREEZEPATHS
+#include "circt/Dialect/OM/OMPasses.h.inc"
+} // namespace om
+} // namespace circt
+
 using namespace om;
 
 namespace {
@@ -290,7 +300,7 @@ LogicalResult PathVisitor::run(ModuleOp module) {
 }
 
 namespace {
-struct FreezePathsPass : public FreezePathsBase<FreezePathsPass> {
+struct FreezePathsPass : public circt::om::impl::FreezePathsBase<FreezePathsPass> {
   void runOnOperation() override;
 };
 } // namespace

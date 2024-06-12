@@ -11,13 +11,19 @@
 //===----------------------------------------------------------------------===//
 
 #include "circt/Conversion/HWToSV.h"
-#include "../PassDetail.h"
+#include "mlir/Pass/Pass.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/SV/SVOps.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "llvm/ADT/TypeSwitch.h"
 
 using namespace mlir;
+
+namespace circt {
+#define GEN_PASS_DEF_LOWERHWTOSV
+#include "circt/Conversion/Passes.h.inc"
+} // namespace circt
+
 using namespace circt;
 using namespace hw;
 using namespace sv;
@@ -35,7 +41,7 @@ static sv::EventControl hwToSvEventControl(hw::EventControl ec) {
 }
 
 namespace {
-struct HWToSVPass : public LowerHWToSVBase<HWToSVPass> {
+struct HWToSVPass : public circt::impl::LowerHWToSVBase<HWToSVPass> {
   void runOnOperation() override;
 };
 
