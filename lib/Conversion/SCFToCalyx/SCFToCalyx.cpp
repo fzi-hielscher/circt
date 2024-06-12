@@ -37,7 +37,6 @@ using namespace mlir;
 using namespace mlir::arith;
 using namespace mlir::cf;
 using namespace mlir::func;
-
 namespace circt {
 class ComponentLoweringStateInterface;
 namespace scftocalyx {
@@ -1584,6 +1583,12 @@ class CleanupFuncOps : public calyx::FuncOpPartialLoweringPattern {
   }
 };
 
+} // namespace scftocalyx
+
+namespace {
+
+using namespace circt::scftocalyx;
+
 //===----------------------------------------------------------------------===//
 // Pass driver
 //===----------------------------------------------------------------------===//
@@ -1856,15 +1861,14 @@ void SCFToCalyxPass::runOnOperation() {
                             ArrayAttr::get(context, sourceLocations));
   }
 }
-
-} // namespace scftocalyx
+} // namespace
 
 //===----------------------------------------------------------------------===//
 // Pass initialization
 //===----------------------------------------------------------------------===//
 
 std::unique_ptr<OperationPass<ModuleOp>> createSCFToCalyxPass() {
-  return std::make_unique<scftocalyx::SCFToCalyxPass>();
+  return std::make_unique<SCFToCalyxPass>();
 }
 
 } // namespace circt
