@@ -15,6 +15,13 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "llvm/ADT/TypeSwitch.h"
 
+namespace circt {
+namespace seq {
+#define GEN_PASS_DEF_LOWERSEQFIFO
+#include "circt/Dialect/Seq/SeqPasses.h.inc"
+} // namespace seq
+} // namespace circt
+
 using namespace circt;
 using namespace seq;
 
@@ -166,10 +173,8 @@ public:
   }
 };
 
-#define GEN_PASS_DEF_LOWERSEQFIFO
-#include "circt/Dialect/Seq/SeqPasses.h.inc"
-
-struct LowerSeqFIFOPass : public impl::LowerSeqFIFOBase<LowerSeqFIFOPass> {
+struct LowerSeqFIFOPass
+    : public circt::seq::impl::LowerSeqFIFOBase<LowerSeqFIFOPass> {
   void runOnOperation() override;
 };
 
