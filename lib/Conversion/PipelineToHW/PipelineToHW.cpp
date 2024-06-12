@@ -19,15 +19,16 @@
 #include "mlir/IR/Builders.h"
 #include "llvm/ADT/TypeSwitch.h"
 
+namespace circt {
+#define GEN_PASS_DEF_PIPELINETOHW
+#include "circt/Conversion/Passes.h.inc"
+} // namespace circt
+
 using namespace mlir;
 using namespace circt;
 using namespace pipeline;
 
 namespace {
-
-#define GEN_PASS_DEF_PIPELINETOHW
-#include "circt/Conversion/Passes.h.inc"
-
 // Base class for all pipeline lowerings.
 class PipelineLowering {
 public:
@@ -458,7 +459,8 @@ public:
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct PipelineToHWPass : public impl::PipelineToHWBase<PipelineToHWPass> {
+struct PipelineToHWPass
+    : public circt::impl::PipelineToHWBase<PipelineToHWPass> {
   using PipelineToHWBase::PipelineToHWBase;
   void runOnOperation() override;
 

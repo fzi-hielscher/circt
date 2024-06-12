@@ -41,7 +41,7 @@ using namespace seq;
 using hw::HWModuleOp;
 using llvm::MapVector;
 
-namespace {
+namespace circt {
 #define GEN_PASS_DEF_LOWERSEQTOSV
 #include "circt/Conversion/Passes.h.inc"
 
@@ -55,7 +55,7 @@ struct SeqToSVPass : public impl::LowerSeqToSVBase<SeqToSVPass> {
   using LowerSeqToSVBase<SeqToSVPass>::LowerSeqToSVBase;
   using LowerSeqToSVBase<SeqToSVPass>::numSubaccessRestored;
 };
-} // anonymous namespace
+} // namespace circt
 
 namespace {
 /// Lower CompRegOp to `sv.reg` and `sv.alwaysff`. Use a posedge clock and
