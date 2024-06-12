@@ -28,6 +28,12 @@ class OperationPass;
 } // namespace mlir
 
 namespace circt {
+#define GEN_PASS_DECL_CFTOHANDSHAKE
+#define GEN_PASS_DECL_HANDSHAKEREMOVEBLOCK
+#include "circt/Conversion/Passes.h.inc"
+} // namespace circt
+
+namespace circt {
 namespace handshake {
 
 // ============================================================================
