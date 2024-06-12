@@ -40,6 +40,7 @@ std::unique_ptr<OperationPass<ModuleOp>> createESIBuildManifestPass();
 std::unique_ptr<OperationPass<ModuleOp>> createESIAppIDHierPass();
 
 /// Generate the code for registering passes.
+#define GEN_PASS_DECL
 #define GEN_PASS_REGISTRATION
 #include "circt/Dialect/ESI/ESIPasses.h.inc"
 

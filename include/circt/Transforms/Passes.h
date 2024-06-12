@@ -112,6 +112,7 @@ LogicalResult insertMergeBlocks(mlir::Region &r,
 //===----------------------------------------------------------------------===//
 
 /// Generate the code for registering passes.
+#define GEN_PASS_DECL
 #define GEN_PASS_REGISTRATION
 #include "circt/Transforms/Passes.h.inc"
 

@@ -41,6 +41,9 @@ createLowerFIRRTLToHWPass(bool enableAnnotationWarning = false,
                           firrtl::VerificationFlavor assertionFlavor =
                               firrtl::VerificationFlavor::None);
 
+#define GEN_PASS_DECL_LOWERFIRRTLTOHW
+#include "circt/Conversion/Passes.h.inc"
+
 } // namespace circt
 
 #endif // CIRCT_CONVERSION_FIRRTLTOHW_FIRRTLTOHW_H

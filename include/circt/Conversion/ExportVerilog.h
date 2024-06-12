@@ -49,6 +49,13 @@ mlir::LogicalResult exportVerilog(mlir::ModuleOp module, llvm::raw_ostream &os);
 mlir::LogicalResult exportSplitVerilog(mlir::ModuleOp module,
                                        llvm::StringRef dirname);
 
+#define GEN_PASS_DECL_TESTAPPLYLOWERINGOPTION
+#define GEN_PASS_DECL_HWLOWERINSTANCECHOICES
+#define GEN_PASS_DECL_PREPAREFOREMISSION
+#define GEN_PASS_DECL_LEGALIZEANONENUMS
+
+#include "circt/Conversion/Passes.h.inc"
+
 } // namespace circt
 
 #endif // CIRCT_TRANSLATION_EXPORTVERILOG_H
