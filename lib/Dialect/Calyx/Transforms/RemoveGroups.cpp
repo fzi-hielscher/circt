@@ -18,8 +18,6 @@
 #include "mlir/IR/OperationSupport.h"
 #include "mlir/Pass/Pass.h"
 
-using namespace circt;
-
 namespace circt {
 namespace calyx {
 #define GEN_PASS_DEF_REMOVEGROUPS
@@ -27,6 +25,7 @@ namespace calyx {
 } // namespace calyx
 } // namespace circt
 
+using namespace circt;
 using namespace calyx;
 using namespace mlir;
 

@@ -28,8 +28,6 @@
 #include "mlir/Pass/Pass.h"
 #include "llvm/ADT/TypeSwitch.h"
 
-using namespace circt;
-
 namespace circt {
 namespace sv {
 #define GEN_PASS_DEF_PRETTIFYVERILOG
@@ -37,6 +35,7 @@ namespace sv {
 } // namespace sv
 } // namespace circt
 
+using namespace circt;
 //===----------------------------------------------------------------------===//
 // PrettifyVerilogPass
 //===----------------------------------------------------------------------===//

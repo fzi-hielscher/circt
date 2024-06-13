@@ -20,8 +20,6 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
-using namespace circt;
-
 namespace circt {
 namespace calyx {
 #define GEN_PASS_DEF_GROUPINVARIANTCODEMOTION
@@ -29,6 +27,7 @@ namespace calyx {
 } // namespace calyx
 } // namespace circt
 
+using namespace circt;
 using namespace calyx;
 using namespace mlir;
 

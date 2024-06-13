@@ -21,8 +21,6 @@
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include "mlir/Transforms/DialectConversion.h"
 
-using namespace circt;
-
 namespace circt {
 namespace handshake {
 #define GEN_PASS_DEF_HANDSHAKELEGALIZEMEMREFS
@@ -30,6 +28,7 @@ namespace handshake {
 } // namespace handshake
 } // namespace circt
 
+using namespace circt;
 using namespace handshake;
 using namespace mlir;
 

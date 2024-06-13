@@ -35,8 +35,6 @@
 #include "llvm/Support/Format.h"
 #include "llvm/Support/SHA256.h"
 
-using namespace circt;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_DEDUP
@@ -44,6 +42,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using namespace circt;
 using namespace firrtl;
 using hw::InnerRefAttr;
 

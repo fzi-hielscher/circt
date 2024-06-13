@@ -29,8 +29,6 @@
 
 #define DEBUG_TYPE "firrtl-resolve-traces"
 
-using namespace circt;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_RESOLVETRACES
@@ -38,6 +36,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using namespace circt;
 using namespace firrtl;
 
 /// Expand a TraceNameAnnotation (which has don't touch semantics) into a

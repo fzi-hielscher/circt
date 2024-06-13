@@ -28,8 +28,6 @@
 #include "llvm/Support/Parallel.h"
 #include "llvm/Support/Path.h"
 
-using namespace circt;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_ADDSEQMEMPORTS
@@ -37,6 +35,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using namespace circt;
 using namespace firrtl;
 
 namespace {

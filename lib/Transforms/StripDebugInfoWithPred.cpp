@@ -13,13 +13,12 @@
 #include "mlir/Pass/Pass.h"
 #include "llvm/ADT/SmallVector.h"
 
-using namespace mlir;
-
 namespace circt {
 #define GEN_PASS_DEF_STRIPDEBUGINFOWITHPRED
 #include "circt/Transforms/Passes.h.inc"
 } // namespace circt
 
+using namespace mlir;
 template <typename OpOrBlockArgument>
 static void updateLocIfChanged(OpOrBlockArgument *op, Location newLoc) {
   if (op->getLoc() != newLoc)

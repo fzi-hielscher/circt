@@ -32,13 +32,12 @@
 
 #include <variant>
 
-using namespace llvm;
-
 namespace circt {
 #define GEN_PASS_DEF_SCFTOCALYX
 #include "circt/Conversion/Passes.h.inc"
 } // namespace circt
 
+using namespace llvm;
 using namespace mlir;
 using namespace mlir::arith;
 using namespace mlir::cf;

@@ -32,8 +32,6 @@
 
 #define DEBUG_TYPE "infer-resets"
 
-using circt::igraph::InstanceOpInterface;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_INFERRESETS
@@ -41,6 +39,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using circt::igraph::InstanceOpInterface;
 using circt::igraph::InstancePath;
 using circt::igraph::InstancePathCache;
 using llvm::BumpPtrAllocator;

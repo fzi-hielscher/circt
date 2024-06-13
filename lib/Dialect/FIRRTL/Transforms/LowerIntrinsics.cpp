@@ -16,8 +16,6 @@
 #include "circt/Dialect/FIRRTL/Passes.h"
 #include "mlir/Pass/Pass.h"
 
-using namespace circt;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_LOWERINTRINSICS
@@ -25,6 +23,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using namespace circt;
 using namespace firrtl;
 
 //===----------------------------------------------------------------------===//

@@ -17,13 +17,12 @@
 #include "circt/Support/LoweringOptions.h"
 #include "mlir/Pass/Pass.h"
 
-using namespace circt;
-
 namespace circt {
 #define GEN_PASS_DEF_TESTAPPLYLOWERINGOPTION
 #include "circt/Conversion/Passes.h.inc"
 } // namespace circt
 
+using namespace circt;
 namespace {
 
 struct TestApplyLoweringOptionPass

@@ -34,13 +34,12 @@
 
 #define DEBUG_TYPE "lower-arc-to-llvm"
 
-using namespace mlir;
-
 namespace circt {
 #define GEN_PASS_DEF_LOWERARCTOLLVM
 #include "circt/Conversion/Passes.h.inc"
 } // namespace circt
 
+using namespace mlir;
 using namespace circt;
 using namespace arc;
 using namespace hw;

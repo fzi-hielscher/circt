@@ -12,8 +12,6 @@
 #include "mlir/IR/Threading.h"
 #include "mlir/Pass/Pass.h"
 
-using namespace mlir;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_SPECIALIZEOPTION
@@ -21,6 +19,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using namespace mlir;
 using namespace circt;
 using namespace firrtl;
 

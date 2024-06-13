@@ -20,13 +20,12 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/raw_ostream.h"
 
-using namespace mlir;
-
 namespace circt {
 #define GEN_PASS_DEF_MAXIMIZESSA
 #include "circt/Transforms/Passes.h.inc"
 } // namespace circt
 
+using namespace mlir;
 using namespace circt;
 
 static Block *getDefiningBlock(Value value) {

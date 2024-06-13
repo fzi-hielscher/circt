@@ -24,8 +24,6 @@
 #include "llvm/ADT/Hashing.h"
 #include "llvm/ADT/TypeSwitch.h"
 
-using namespace circt;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_LOWERCHIRRTLPASS
@@ -33,6 +31,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using namespace circt;
 using namespace firrtl;
 using namespace chirrtl;
 

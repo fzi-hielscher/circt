@@ -23,13 +23,12 @@
 #include "llvm/Support/Process.h"
 #include "llvm/Support/ToolOutputFile.h"
 
-using namespace mlir;
-
 namespace circt {
 #define GEN_PASS_DEF_CALYXNATIVE
 #include "circt/Conversion/Passes.h.inc"
 } // namespace circt
 
+using namespace mlir;
 using namespace circt;
 
 /// ConversionPatterns.

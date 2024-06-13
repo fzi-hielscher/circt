@@ -24,8 +24,6 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
-using namespace mlir;
-
 namespace circt {
 namespace msft {
 #define GEN_PASS_DEF_LOWERCONSTRUCTS
@@ -33,6 +31,7 @@ namespace msft {
 } // namespace msft
 } // namespace circt
 
+using namespace mlir;
 using namespace circt;
 using namespace msft;
 

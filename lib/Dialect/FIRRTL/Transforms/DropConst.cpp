@@ -18,8 +18,6 @@
 #include "mlir/IR/Threading.h"
 #include "mlir/Pass/Pass.h"
 
-using namespace circt;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_DROPCONST
@@ -27,6 +25,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using namespace circt;
 using namespace firrtl;
 
 /// Returns null type if no conversion is needed.

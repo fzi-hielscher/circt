@@ -32,13 +32,12 @@
 
 #include <optional>
 
-using namespace mlir;
-
 namespace circt {
 #define GEN_PASS_DEF_DCTOHW
 #include "circt/Conversion/Passes.h.inc"
 } // namespace circt
 
+using namespace mlir;
 using namespace circt;
 using namespace circt::dc;
 using namespace circt::hw;

@@ -36,8 +36,6 @@
 
 #define DEBUG_TYPE "firrtl-blackbox-reader"
 
-using namespace circt;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_BLACKBOXREADER
@@ -45,6 +43,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using namespace circt;
 using namespace firrtl;
 
 //===----------------------------------------------------------------------===//

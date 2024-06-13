@@ -21,13 +21,12 @@
 #include <memory>
 #include <variant>
 
-using namespace mlir;
-
 namespace circt {
 #define GEN_PASS_DEF_CONVERTFSMTOSV
 #include "circt/Conversion/Passes.h.inc"
 } // namespace circt
 
+using namespace mlir;
 using namespace circt;
 using namespace fsm;
 

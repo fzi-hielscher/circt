@@ -23,8 +23,6 @@
 
 #include <optional>
 
-using namespace circt;
-
 namespace circt {
 namespace handshake {
 #define GEN_PASS_DEF_HANDSHAKEDOTPRINT
@@ -34,6 +32,7 @@ namespace handshake {
 } // namespace handshake
 } // namespace circt
 
+using namespace circt;
 using namespace handshake;
 using namespace mlir;
 

@@ -37,8 +37,6 @@
 
 #define DEBUG_TYPE "firrtl-extract-instances"
 
-using namespace circt;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_EXTRACTINSTANCES
@@ -46,6 +44,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using namespace circt;
 using namespace firrtl;
 using hw::InnerRefAttr;
 

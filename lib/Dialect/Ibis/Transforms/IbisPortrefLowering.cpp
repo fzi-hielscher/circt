@@ -22,8 +22,6 @@
 
 #define DEBUG_TYPE "ibis-lower-portrefs"
 
-using namespace mlir;
-
 namespace circt {
 namespace ibis {
 #define GEN_PASS_DEF_IBISPORTREFLOWERING
@@ -31,6 +29,7 @@ namespace ibis {
 } // namespace ibis
 } // namespace circt
 
+using namespace mlir;
 using namespace circt;
 using namespace ibis;
 

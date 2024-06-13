@@ -38,13 +38,12 @@
 
 #define DEBUG_TYPE "affine-to-loopschedule"
 
-using namespace mlir;
-
 namespace circt {
 #define GEN_PASS_DEF_AFFINETOLOOPSCHEDULE
 #include "circt/Conversion/Passes.h.inc"
 } // namespace circt
 
+using namespace mlir;
 using namespace mlir::arith;
 using namespace mlir::memref;
 using namespace mlir::scf;

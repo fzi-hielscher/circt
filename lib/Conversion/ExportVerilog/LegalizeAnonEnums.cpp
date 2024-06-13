@@ -17,13 +17,12 @@
 #include "mlir/Pass/Pass.h"
 #include "llvm/ADT/DenseSet.h"
 
-using namespace circt;
-
 namespace circt {
 #define GEN_PASS_DEF_LEGALIZEANONENUMS
 #include "circt/Conversion/Passes.h.inc"
 } // namespace circt
 
+using namespace circt;
 using namespace hw;
 using namespace sv;
 

@@ -21,8 +21,6 @@
 
 #include <memory>
 
-using namespace circt;
-
 namespace circt {
 namespace om {
 #define GEN_PASS_DEF_LINKMODULES
@@ -30,6 +28,7 @@ namespace om {
 } // namespace om
 } // namespace circt
 
+using namespace circt;
 using namespace om;
 using namespace mlir;
 using namespace llvm;

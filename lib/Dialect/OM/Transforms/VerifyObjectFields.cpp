@@ -20,8 +20,6 @@
 #include "mlir/Pass/Pass.h"
 #include "llvm/ADT/DenseMap.h"
 
-using namespace mlir;
-
 namespace circt {
 namespace om {
 #define GEN_PASS_DEF_VERIFYOBJECTFIELDS
@@ -29,6 +27,7 @@ namespace om {
 } // namespace om
 } // namespace circt
 
+using namespace mlir;
 using namespace circt;
 using namespace om;
 

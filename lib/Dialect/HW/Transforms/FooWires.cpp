@@ -14,8 +14,6 @@
 #include "circt/Dialect/HW/HWTypes.h"
 #include "mlir/Pass/Pass.h"
 
-using namespace circt;
-
 namespace circt {
 namespace hw {
 #define GEN_PASS_DEF_FOOWIRES
@@ -23,6 +21,7 @@ namespace hw {
 } // namespace hw
 } // namespace circt
 
+using namespace circt;
 using namespace hw;
 
 namespace {

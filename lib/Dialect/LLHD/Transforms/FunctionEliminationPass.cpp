@@ -16,8 +16,6 @@
 #include "mlir/IR/Visitors.h"
 #include "mlir/Pass/Pass.h"
 
-using namespace circt;
-
 namespace circt {
 namespace llhd {
 #define GEN_PASS_DEF_FUNCTIONELIMINATION
@@ -25,6 +23,7 @@ namespace llhd {
 } // namespace llhd
 } // namespace circt
 
+using namespace circt;
 namespace {
 
 struct FunctionEliminationPass

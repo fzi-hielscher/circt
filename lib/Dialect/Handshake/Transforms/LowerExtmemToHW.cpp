@@ -25,8 +25,6 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "llvm/Support/Debug.h"
 
-using namespace circt;
-
 namespace circt {
 namespace handshake {
 #define GEN_PASS_DEF_HANDSHAKELOWEREXTMEMTOHW
@@ -34,6 +32,7 @@ namespace handshake {
 } // namespace handshake
 } // namespace circt
 
+using namespace circt;
 using namespace handshake;
 using namespace mlir;
 namespace {

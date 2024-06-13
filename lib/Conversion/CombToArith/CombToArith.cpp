@@ -13,13 +13,12 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 
-using namespace circt;
-
 namespace circt {
 #define GEN_PASS_DEF_CONVERTCOMBTOARITH
 #include "circt/Conversion/Passes.h.inc"
 } // namespace circt
 
+using namespace circt;
 using namespace hw;
 using namespace comb;
 using namespace mlir;

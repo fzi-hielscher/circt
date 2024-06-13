@@ -17,8 +17,6 @@
 #include "mlir/IR/Dominance.h"
 #include "mlir/Pass/Pass.h"
 
-using namespace circt;
-
 namespace circt {
 namespace llhd {
 #define GEN_PASS_DEF_EARLYCODEMOTION
@@ -26,6 +24,7 @@ namespace llhd {
 } // namespace llhd
 } // namespace circt
 
+using namespace circt;
 namespace {
 struct EarlyCodeMotionPass
     : public circt::llhd::impl::EarlyCodeMotionBase<EarlyCodeMotionPass> {

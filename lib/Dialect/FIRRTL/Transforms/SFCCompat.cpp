@@ -30,8 +30,6 @@
 
 #define DEBUG_TYPE "firrtl-remove-resets"
 
-using namespace circt;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_SFCCOMPAT
@@ -39,6 +37,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using namespace circt;
 using namespace firrtl;
 
 struct SFCCompatPass

@@ -20,8 +20,6 @@
 
 #include "circt/Scheduling/Utilities.h"
 
-using namespace circt;
-
 namespace circt {
 namespace ssp {
 #define GEN_PASS_DEF_PRINT
@@ -29,6 +27,7 @@ namespace ssp {
 } // namespace ssp
 } // namespace circt
 
+using namespace circt;
 using namespace scheduling;
 using namespace ssp;
 

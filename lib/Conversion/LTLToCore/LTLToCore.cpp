@@ -29,13 +29,12 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "llvm/Support/MathExtras.h"
 
-using namespace mlir;
-
 namespace circt {
 #define GEN_PASS_DEF_LOWERLTLTOCORE
 #include "circt/Conversion/Passes.h.inc"
 } // namespace circt
 
+using namespace mlir;
 using namespace circt;
 using namespace hw;
 

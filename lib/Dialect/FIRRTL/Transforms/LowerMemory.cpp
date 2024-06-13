@@ -28,8 +28,6 @@
 #include <optional>
 #include <set>
 
-using namespace circt;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_LOWERMEMORY
@@ -37,6 +35,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using namespace circt;
 using namespace firrtl;
 
 // Extract all the relevant attributes from the MemOp and return the FirMemory.

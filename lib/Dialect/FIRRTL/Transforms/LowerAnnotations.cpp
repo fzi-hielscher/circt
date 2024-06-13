@@ -40,8 +40,6 @@
 
 #define DEBUG_TYPE "lower-annos"
 
-using namespace circt;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_LOWERFIRRTLANNOTATIONS
@@ -49,6 +47,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using namespace circt;
 using namespace firrtl;
 using namespace chirrtl;
 

@@ -12,8 +12,6 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "llvm/ADT/TypeSwitch.h"
 
-using namespace mlir;
-
 namespace circt {
 namespace hw {
 #define GEN_PASS_DEF_FLATTENIO
@@ -21,6 +19,7 @@ namespace hw {
 } // namespace hw
 } // namespace circt
 
+using namespace mlir;
 using namespace circt;
 
 static bool isStructType(Type type) {

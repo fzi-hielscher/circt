@@ -45,14 +45,13 @@
 #include <list>
 #include <map>
 
-using namespace mlir;
-
 namespace circt {
 #define GEN_PASS_DEF_CFTOHANDSHAKE
 #define GEN_PASS_DEF_HANDSHAKEREMOVEBLOCK
 #include "circt/Conversion/Passes.h.inc"
 } // namespace circt
 
+using namespace mlir;
 using namespace mlir::func;
 using namespace mlir::affine;
 using namespace circt;

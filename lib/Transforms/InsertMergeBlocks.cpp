@@ -18,13 +18,12 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "llvm/ADT/TypeSwitch.h"
 
-using namespace mlir;
-
 namespace circt {
 #define GEN_PASS_DEF_INSERTMERGEBLOCKS
 #include "circt/Transforms/Passes.h.inc"
 } // namespace circt
 
+using namespace mlir;
 using namespace circt;
 
 /// Replaces the branching to oldDest of with an equivalent operation that

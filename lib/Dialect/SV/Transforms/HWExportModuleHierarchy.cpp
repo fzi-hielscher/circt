@@ -27,8 +27,6 @@
 #include "llvm/Support/Path.h"
 #include "llvm/Support/ToolOutputFile.h"
 
-using namespace circt;
-
 namespace circt {
 namespace sv {
 #define GEN_PASS_DEF_HWEXPORTMODULEHIERARCHY
@@ -36,6 +34,7 @@ namespace sv {
 } // namespace sv
 } // namespace circt
 
+using namespace circt;
 //===----------------------------------------------------------------------===//
 // Pass Implementation
 //===----------------------------------------------------------------------===//

@@ -18,8 +18,6 @@
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
-using namespace circt;
-
 namespace circt {
 namespace handshake {
 #define GEN_PASS_DEF_HANDSHAKESPLITMERGES
@@ -27,6 +25,7 @@ namespace handshake {
 } // namespace handshake
 } // namespace circt
 
+using namespace circt;
 using namespace handshake;
 using namespace mlir;
 

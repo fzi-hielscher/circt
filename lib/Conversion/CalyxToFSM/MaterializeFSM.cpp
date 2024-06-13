@@ -19,13 +19,12 @@
 #include "mlir/Pass/Pass.h"
 #include "llvm/ADT/STLExtras.h"
 
-using namespace circt;
-
 namespace circt {
 #define GEN_PASS_DEF_MATERIALIZECALYXTOFSM
 #include "circt/Conversion/Passes.h.inc"
 } // namespace circt
 
+using namespace circt;
 using namespace calyx;
 using namespace mlir;
 using namespace fsm;

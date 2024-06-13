@@ -16,8 +16,6 @@
 #include "mlir/Pass/Pass.h"
 #include "llvm/Support/Debug.h"
 
-using namespace mlir;
-
 namespace circt {
 namespace pipeline {
 #define GEN_PASS_DEF_EXPLICITREGS
@@ -25,6 +23,7 @@ namespace pipeline {
 } // namespace pipeline
 } // namespace circt
 
+using namespace mlir;
 using namespace circt;
 using namespace pipeline;
 

@@ -16,8 +16,6 @@
 #include "mlir/IR/Visitors.h"
 #include "mlir/Pass/Pass.h"
 
-using namespace mlir;
-
 namespace circt {
 namespace llhd {
 #define GEN_PASS_DEF_PROCESSLOWERING
@@ -25,6 +23,7 @@ namespace llhd {
 } // namespace llhd
 } // namespace circt
 
+using namespace mlir;
 using namespace circt;
 
 namespace {

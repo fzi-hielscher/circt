@@ -25,8 +25,6 @@
 #include <memory>
 #include <utility>
 
-using namespace circt;
-
 namespace circt {
 namespace esi {
 #define GEN_PASS_DEF_ESICONNECTSERVICES
@@ -34,6 +32,7 @@ namespace esi {
 } // namespace esi
 } // namespace circt
 
+using namespace circt;
 using namespace circt::esi;
 
 LogicalResult

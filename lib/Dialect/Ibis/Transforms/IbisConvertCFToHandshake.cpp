@@ -20,8 +20,6 @@
 
 #include "circt/Conversion/CFToHandshake.h"
 
-using namespace mlir;
-
 namespace circt {
 namespace ibis {
 #define GEN_PASS_DEF_IBISCONVERTCFTOHANDSHAKE
@@ -29,6 +27,7 @@ namespace ibis {
 } // namespace ibis
 } // namespace circt
 
+using namespace mlir;
 using namespace circt;
 using namespace ibis;
 

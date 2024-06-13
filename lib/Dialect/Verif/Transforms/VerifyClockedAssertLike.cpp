@@ -22,8 +22,6 @@
 #include "mlir/Pass/Pass.h"
 #include "llvm/ADT/TypeSwitch.h"
 
-using namespace circt;
-
 namespace circt {
 namespace verif {
 #define GEN_PASS_DEF_VERIFYCLOCKEDASSERTLIKE
@@ -31,6 +29,7 @@ namespace verif {
 } // namespace verif
 } // namespace circt
 
+using namespace circt;
 using namespace verif;
 
 namespace {

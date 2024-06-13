@@ -22,8 +22,6 @@
 #include "mlir/IR/Builders.h"
 #include "mlir/Pass/Pass.h"
 
-using namespace circt;
-
 namespace circt {
 namespace sv {
 #define GEN_PASS_DEF_HWLEGALIZEMODULES
@@ -31,6 +29,7 @@ namespace sv {
 } // namespace sv
 } // namespace circt
 
+using namespace circt;
 //===----------------------------------------------------------------------===//
 // HWLegalizeModulesPass
 //===----------------------------------------------------------------------===//

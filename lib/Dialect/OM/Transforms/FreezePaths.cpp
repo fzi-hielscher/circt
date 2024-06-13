@@ -18,8 +18,6 @@
 #include "circt/Dialect/OM/OMPasses.h"
 #include "mlir/Pass/Pass.h"
 
-using namespace circt;
-
 namespace circt {
 namespace om {
 #define GEN_PASS_DEF_FREEZEPATHS
@@ -27,6 +25,7 @@ namespace om {
 } // namespace om
 } // namespace circt
 
+using namespace circt;
 using namespace om;
 
 namespace {

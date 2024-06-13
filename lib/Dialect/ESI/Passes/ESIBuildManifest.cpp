@@ -19,8 +19,6 @@
 #include "llvm/Support/Compression.h"
 #include "llvm/Support/JSON.h"
 
-using namespace circt;
-
 namespace circt {
 namespace esi {
 #define GEN_PASS_DEF_ESIBUILDMANIFEST
@@ -28,6 +26,7 @@ namespace esi {
 } // namespace esi
 } // namespace circt
 
+using namespace circt;
 using namespace esi;
 
 namespace {

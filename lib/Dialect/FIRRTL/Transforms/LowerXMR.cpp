@@ -29,8 +29,6 @@
 
 #define DEBUG_TYPE "firrtl-lower-xmr"
 
-using namespace circt;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_LOWERXMR
@@ -38,6 +36,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using namespace circt;
 using namespace firrtl;
 using hw::InnerRefAttr;
 

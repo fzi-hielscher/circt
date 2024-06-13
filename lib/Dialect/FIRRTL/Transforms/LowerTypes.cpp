@@ -53,8 +53,6 @@
 
 #define DEBUG_TYPE "firrtl-lower-types"
 
-using namespace circt;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_LOWERFIRRTLTYPES
@@ -62,6 +60,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using namespace circt;
 using namespace firrtl;
 
 // TODO: check all argument types

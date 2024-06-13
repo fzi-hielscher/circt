@@ -18,8 +18,6 @@
 #include "circt/Transforms/Passes.h"
 #include "mlir/Transforms/DialectConversion.h"
 
-using namespace circt;
-
 namespace circt {
 namespace ibis {
 #define GEN_PASS_DEF_IBISREBLOCK
@@ -27,6 +25,7 @@ namespace ibis {
 } // namespace ibis
 } // namespace circt
 
+using namespace circt;
 using namespace ibis;
 
 namespace {

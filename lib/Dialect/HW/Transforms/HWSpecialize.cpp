@@ -24,8 +24,6 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "llvm/ADT/TypeSwitch.h"
 
-using namespace llvm;
-
 namespace circt {
 namespace hw {
 #define GEN_PASS_DEF_HWSPECIALIZE
@@ -33,6 +31,7 @@ namespace hw {
 } // namespace hw
 } // namespace circt
 
+using namespace llvm;
 using namespace mlir;
 using namespace circt;
 using namespace hw;

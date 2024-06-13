@@ -25,8 +25,6 @@
 #include "mlir/Support/IndentedOstream.h"
 #include "llvm/ADT/TypeSwitch.h"
 
-using namespace circt;
-
 namespace circt {
 namespace handshake {
 #define GEN_PASS_DEF_HANDSHAKEMATERIALIZEFORKSSINKS
@@ -35,6 +33,7 @@ namespace handshake {
 } // namespace handshake
 } // namespace circt
 
+using namespace circt;
 using namespace handshake;
 using namespace mlir;
 using namespace mlir::affine;

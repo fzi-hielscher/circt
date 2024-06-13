@@ -19,8 +19,6 @@
 #include "circt/Support/SymCache.h"
 #include "mlir/Transforms/DialectConversion.h"
 
-using namespace circt;
-
 namespace circt {
 namespace ibis {
 #define GEN_PASS_DEF_IBISCONTAINERIZE
@@ -28,6 +26,7 @@ namespace ibis {
 } // namespace ibis
 } // namespace circt
 
+using namespace circt;
 using namespace ibis;
 
 namespace {

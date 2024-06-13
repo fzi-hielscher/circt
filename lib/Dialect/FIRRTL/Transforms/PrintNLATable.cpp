@@ -15,8 +15,6 @@
 #include "mlir/Pass/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 
-using namespace circt;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_PRINTNLATABLE
@@ -24,6 +22,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using namespace circt;
 using namespace firrtl;
 
 namespace {

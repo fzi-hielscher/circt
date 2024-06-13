@@ -16,8 +16,6 @@
 #include "llvm/Support/GraphWriter.h"
 #include "llvm/Support/raw_ostream.h"
 
-using namespace circt;
-
 namespace circt {
 namespace hw {
 #define GEN_PASS_DEF_PRINTHWMODULEGRAPH
@@ -25,6 +23,7 @@ namespace hw {
 } // namespace hw
 } // namespace circt
 
+using namespace circt;
 using namespace hw;
 
 namespace {

@@ -20,8 +20,6 @@
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Process.h"
 
-using namespace circt;
-
 namespace circt {
 namespace sv {
 #define GEN_PASS_DEF_SVTRACEIVERILOG
@@ -29,6 +27,7 @@ namespace sv {
 } // namespace sv
 } // namespace circt
 
+using namespace circt;
 using namespace sv;
 using namespace hw;
 

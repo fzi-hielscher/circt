@@ -21,8 +21,6 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "llvm/ADT/TypeSwitch.h"
 
-using namespace circt;
-
 namespace circt {
 namespace ibis {
 #define GEN_PASS_DEF_IBISCONTAINERSTOHW
@@ -30,6 +28,7 @@ namespace ibis {
 } // namespace ibis
 } // namespace circt
 
+using namespace circt;
 using namespace ibis;
 
 namespace {

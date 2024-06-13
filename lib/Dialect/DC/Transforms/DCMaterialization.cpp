@@ -14,8 +14,6 @@
 #include "circt/Dialect/DC/DCPasses.h"
 #include "mlir/Pass/Pass.h"
 
-using namespace circt;
-
 namespace circt {
 namespace dc {
 #define GEN_PASS_DEF_DCMATERIALIZEFORKSSINKS
@@ -24,6 +22,7 @@ namespace dc {
 } // namespace dc
 } // namespace circt
 
+using namespace circt;
 using namespace dc;
 using namespace mlir;
 

@@ -24,8 +24,6 @@
 
 #define DEBUG_TYPE "pipeline-schedule-linear"
 
-using namespace mlir;
-
 namespace circt {
 namespace pipeline {
 #define GEN_PASS_DEF_SCHEDULELINEARPIPELINE
@@ -33,6 +31,7 @@ namespace pipeline {
 } // namespace pipeline
 } // namespace circt
 
+using namespace mlir;
 using namespace circt;
 using namespace circt::scheduling;
 using namespace pipeline;

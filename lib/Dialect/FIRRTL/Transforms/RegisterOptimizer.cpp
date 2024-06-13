@@ -22,8 +22,6 @@
 
 #define DEBUG_TYPE "firrtl-register-optimizer"
 
-using namespace circt;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_REGISTEROPTIMIZER
@@ -31,6 +29,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using namespace circt;
 using namespace firrtl;
 
 // Instantiated for RegOp and RegResetOp

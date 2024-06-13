@@ -18,8 +18,6 @@
 #include "llvm/Support/GraphWriter.h"
 #include "llvm/Support/raw_ostream.h"
 
-using namespace circt;
-
 namespace circt {
 namespace fsm {
 #define GEN_PASS_DEF_PRINTFSMGRAPH
@@ -27,6 +25,7 @@ namespace fsm {
 } // namespace fsm
 } // namespace circt
 
+using namespace circt;
 using namespace fsm;
 
 namespace {

@@ -24,8 +24,6 @@
 
 #include <iterator>
 
-using namespace mlir;
-
 namespace circt {
 namespace ibis {
 #define GEN_PASS_DEF_IBISADDOPERATORLIBRARY
@@ -33,6 +31,7 @@ namespace ibis {
 } // namespace ibis
 } // namespace circt
 
+using namespace mlir;
 using namespace circt;
 using namespace ibis;
 

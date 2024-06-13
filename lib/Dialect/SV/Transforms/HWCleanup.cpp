@@ -19,8 +19,6 @@
 #include "circt/Dialect/SV/SVPasses.h"
 #include "mlir/Pass/Pass.h"
 
-using namespace circt;
-
 namespace circt {
 namespace sv {
 #define GEN_PASS_DEF_HWCLEANUP
@@ -28,6 +26,7 @@ namespace sv {
 } // namespace sv
 } // namespace circt
 
+using namespace circt;
 //===----------------------------------------------------------------------===//
 // Helper utilities
 //===----------------------------------------------------------------------===//

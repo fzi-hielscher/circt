@@ -16,8 +16,6 @@
 #include "circt/Dialect/SV/SVOps.h"
 #include "mlir/Pass/Pass.h"
 
-using namespace circt;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_FINALIZEIR
@@ -25,6 +23,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using namespace circt;
 namespace {
 struct FinalizeIRPass
     : public circt::firrtl::impl::FinalizeIRBase<FinalizeIRPass> {

@@ -26,14 +26,13 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "llvm/Support/MathExtras.h"
 
-using namespace mlir;
-
 namespace circt {
 #define GEN_PASS_DEF_FLATTENMEMREF
 #define GEN_PASS_DEF_FLATTENMEMREFCALLS
 #include "circt/Transforms/Passes.h.inc"
 } // namespace circt
 
+using namespace mlir;
 using namespace circt;
 
 bool circt::isUniDimensional(MemRefType memref) {

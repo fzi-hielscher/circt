@@ -31,14 +31,13 @@
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/raw_ostream.h"
 
-using namespace circt;
-
 namespace circt {
 #define GEN_PASS_DEF_CONVERTHWTOBTOR2
 #define GEN_PASS_DEF_CONVERTHWTOBTOR2
 #include "circt/Conversion/Passes.h.inc"
 } // namespace circt
 
+using namespace circt;
 using namespace hw;
 
 namespace {

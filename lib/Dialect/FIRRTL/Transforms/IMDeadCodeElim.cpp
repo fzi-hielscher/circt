@@ -25,8 +25,6 @@
 
 #define DEBUG_TYPE "firrtl-imdeadcodeelim"
 
-using namespace circt;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_IMDEADCODEELIM
@@ -34,6 +32,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using namespace circt;
 using namespace firrtl;
 
 // Return true if this op has side-effects except for alloc and read.

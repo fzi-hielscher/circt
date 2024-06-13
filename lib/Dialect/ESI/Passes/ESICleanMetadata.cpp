@@ -13,8 +13,6 @@
 #include "circt/Dialect/ESI/ESIOps.h"
 #include "circt/Dialect/ESI/ESIPasses.h"
 
-using namespace circt;
-
 namespace circt {
 namespace esi {
 #define GEN_PASS_DEF_ESICLEANMETADATA
@@ -22,6 +20,7 @@ namespace esi {
 } // namespace esi
 } // namespace circt
 
+using namespace circt;
 using namespace esi;
 
 namespace {

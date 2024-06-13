@@ -35,8 +35,6 @@
 
 #define DEBUG_TYPE "infer-widths"
 
-using mlir::InferTypeOpInterface;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_INFERWIDTHS
@@ -44,6 +42,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using mlir::InferTypeOpInterface;
 using mlir::WalkOrder;
 
 using namespace circt;

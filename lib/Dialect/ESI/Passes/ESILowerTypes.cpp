@@ -22,8 +22,6 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 
-using namespace circt;
-
 namespace circt {
 namespace esi {
 #define GEN_PASS_DEF_LOWERESITYPES
@@ -31,6 +29,7 @@ namespace esi {
 } // namespace esi
 } // namespace circt
 
+using namespace circt;
 using namespace circt::esi;
 
 namespace {

@@ -17,8 +17,6 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 
-using namespace mlir;
-
 namespace circt {
 namespace systemc {
 #define GEN_PASS_DEF_SYSTEMCLOWERINSTANCEINTEROP
@@ -26,6 +24,7 @@ namespace systemc {
 } // namespace systemc
 } // namespace circt
 
+using namespace mlir;
 using namespace circt;
 using namespace circt::systemc;
 

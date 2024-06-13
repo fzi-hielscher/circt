@@ -19,8 +19,6 @@
 
 #include "mlir/Transforms/DialectConversion.h"
 
-using namespace circt;
-
 namespace circt {
 namespace esi {
 #define GEN_PASS_DEF_LOWERESITOPHYSICAL
@@ -28,6 +26,7 @@ namespace esi {
 } // namespace esi
 } // namespace circt
 
+using namespace circt;
 using namespace circt::esi;
 using namespace circt::esi::detail;
 using namespace circt::hw;

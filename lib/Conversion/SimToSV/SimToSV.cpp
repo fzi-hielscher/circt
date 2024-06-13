@@ -28,13 +28,12 @@
 
 #define DEBUG_TYPE "lower-sim-to-sv"
 
-using namespace circt;
-
 namespace circt {
 #define GEN_PASS_DEF_LOWERSIMTOSV
 #include "circt/Conversion/Passes.h.inc"
 } // namespace circt
 
+using namespace circt;
 using namespace sim;
 
 namespace {

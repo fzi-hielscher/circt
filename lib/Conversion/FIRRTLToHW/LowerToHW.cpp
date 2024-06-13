@@ -47,13 +47,12 @@
 
 #define DEBUG_TYPE "lower-to-hw"
 
-using namespace circt;
-
 namespace circt {
 #define GEN_PASS_DEF_LOWERFIRRTLTOHW
 #include "circt/Conversion/Passes.h.inc"
 } // namespace circt
 
+using namespace circt;
 using namespace firrtl;
 using circt::comb::ICmpPredicate;
 

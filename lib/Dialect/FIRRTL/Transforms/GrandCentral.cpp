@@ -34,8 +34,6 @@
 
 #define DEBUG_TYPE "gct"
 
-using namespace circt;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_GRANDCENTRAL
@@ -43,6 +41,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using namespace circt;
 using namespace firrtl;
 
 //===----------------------------------------------------------------------===//

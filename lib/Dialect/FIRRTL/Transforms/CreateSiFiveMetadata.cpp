@@ -30,8 +30,6 @@
 #include "llvm/Support/JSON.h"
 #include "llvm/Support/Path.h"
 
-using namespace circt;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_CREATESIFIVEMETADATA
@@ -39,6 +37,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using namespace circt;
 using namespace firrtl;
 
 namespace {

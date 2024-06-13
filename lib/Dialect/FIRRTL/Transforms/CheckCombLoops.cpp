@@ -43,8 +43,6 @@
 
 #define DEBUG_TYPE "check-comb-loops"
 
-using namespace circt;
-
 namespace circt {
 namespace firrtl {
 #define GEN_PASS_DEF_CHECKCOMBLOOPS
@@ -52,6 +50,7 @@ namespace firrtl {
 } // namespace firrtl
 } // namespace circt
 
+using namespace circt;
 using namespace firrtl;
 
 using DrivenBysMapType = DenseMap<FieldRef, DenseSet<FieldRef>>;

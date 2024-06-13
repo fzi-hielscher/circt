@@ -62,7 +62,6 @@ namespace circt {
 } // namespace circt
 
 using namespace circt;
-
 using namespace comb;
 using namespace hw;
 using namespace sv;

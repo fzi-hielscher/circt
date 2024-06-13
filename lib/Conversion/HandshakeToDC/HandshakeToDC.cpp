@@ -27,13 +27,12 @@
 #include "llvm/Support/MathExtras.h"
 #include <optional>
 
-using namespace mlir;
-
 namespace circt {
 #define GEN_PASS_DEF_HANDSHAKETODC
 #include "circt/Conversion/Passes.h.inc"
 } // namespace circt
 
+using namespace mlir;
 using namespace circt;
 using namespace handshake;
 using namespace dc;

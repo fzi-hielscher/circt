@@ -22,8 +22,6 @@
 
 #include "llvm/ADT/StringExtras.h"
 
-using namespace circt;
-
 namespace circt {
 namespace ssp {
 #define GEN_PASS_DEF_SCHEDULE
@@ -31,6 +29,7 @@ namespace ssp {
 } // namespace ssp
 } // namespace circt
 
+using namespace circt;
 using namespace scheduling;
 using namespace ssp;
 

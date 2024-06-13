@@ -32,8 +32,6 @@
 
 #include <set>
 
-using namespace mlir;
-
 namespace circt {
 namespace sv {
 #define GEN_PASS_DEF_SVEXTRACTTESTCODE
@@ -41,6 +39,7 @@ namespace sv {
 } // namespace sv
 } // namespace circt
 
+using namespace mlir;
 using namespace circt;
 using namespace sv;
 

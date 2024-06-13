@@ -23,8 +23,6 @@
 
 #define DEBUG_TYPE "ibis-clean-selfdrivers"
 
-using namespace circt;
-
 namespace circt {
 namespace ibis {
 #define GEN_PASS_DEF_IBISCLEANSELFDRIVERS
@@ -32,6 +30,7 @@ namespace ibis {
 } // namespace ibis
 } // namespace circt
 
+using namespace circt;
 using namespace ibis;
 using namespace circt::igraph;
 

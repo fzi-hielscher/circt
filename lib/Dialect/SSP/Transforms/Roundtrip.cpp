@@ -18,8 +18,6 @@
 #include "circt/Scheduling/Problems.h"
 #include "mlir/Pass/Pass.h"
 
-using namespace circt;
-
 namespace circt {
 namespace ssp {
 #define GEN_PASS_DEF_ROUNDTRIP
@@ -27,6 +25,7 @@ namespace ssp {
 } // namespace ssp
 } // namespace circt
 
+using namespace circt;
 using namespace scheduling;
 using namespace ssp;
 

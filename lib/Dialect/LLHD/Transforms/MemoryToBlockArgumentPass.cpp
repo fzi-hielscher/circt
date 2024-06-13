@@ -18,8 +18,6 @@
 #include "mlir/Pass/Pass.h"
 #include <set>
 
-using namespace circt;
-
 namespace circt {
 namespace llhd {
 #define GEN_PASS_DEF_MEMORYTOBLOCKARGUMENT
@@ -27,6 +25,7 @@ namespace llhd {
 } // namespace llhd
 } // namespace circt
 
+using namespace circt;
 namespace {
 
 struct MemoryToBlockArgumentPass

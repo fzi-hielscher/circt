@@ -23,8 +23,6 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
-using namespace circt;
-
 namespace circt {
 namespace msft {
 #define GEN_PASS_DEF_LOWERINSTANCES
@@ -32,6 +30,7 @@ namespace msft {
 } // namespace msft
 } // namespace circt
 
+using namespace circt;
 using namespace msft;
 
 //===----------------------------------------------------------------------===//
