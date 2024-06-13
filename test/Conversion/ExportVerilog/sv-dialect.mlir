@@ -1,4 +1,4 @@
-// RUN: circt-opt %s -test-apply-lowering-options='lowering-options=explicitBitcast,maximumNumberOfTermsPerExpression=10,emitBindComments' -export-verilog -verify-diagnostics | FileCheck %s
+// RUN: circt-opt %s -test-apply-lowering-options='options=explicitBitcast,maximumNumberOfTermsPerExpression=10,emitBindComments' -export-verilog -verify-diagnostics | FileCheck %s
 
 sv.macro.decl @SYNTHESIS
 sv.macro.decl @VERILATOR

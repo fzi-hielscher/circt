@@ -1,4 +1,4 @@
-// RUN: circt-opt %s --test-apply-lowering-options="lowering-options=emittedLineLength=9001,verifLabels" --export-verilog --verify-diagnostics | FileCheck %s
+// RUN: circt-opt %s --test-apply-lowering-options="options=emittedLineLength=9001,verifLabels" --export-verilog --verify-diagnostics | FileCheck %s
 
 // CHECK-LABEL: module Labels
 hw.module @Labels(in %a: i1) {
