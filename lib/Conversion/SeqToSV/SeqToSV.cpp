@@ -11,7 +11,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "circt/Conversion/SeqToSV.h"
-#include "../PassDetail.h"
 #include "FirMemLowering.h"
 #include "FirRegLowering.h"
 #include "circt/Dialect/Comb/CombOps.h"
