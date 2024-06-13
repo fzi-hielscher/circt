@@ -29,7 +29,6 @@ using namespace mlir;
 using namespace circt;
 using namespace calyx;
 using namespace fsm;
-// using namespace sv;
 
 namespace {
 
