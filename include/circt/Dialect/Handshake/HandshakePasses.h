@@ -27,6 +27,9 @@ namespace circt {
 namespace handshake {
 class FuncOp;
 
+#define GEN_PASS_DECL
+#include "circt/Dialect/Handshake/HandshakePasses.h.inc"
+
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
 createHandshakeDotPrintPass();
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
@@ -73,7 +76,6 @@ LogicalResult bufferRegion(Region &r, OpBuilder &rewriter, StringRef strategy,
                            unsigned bufferSize);
 
 /// Generate the code for registering passes.
-#define GEN_PASS_DECL
 #define GEN_PASS_REGISTRATION
 #include "circt/Dialect/Handshake/HandshakePasses.h.inc"
 

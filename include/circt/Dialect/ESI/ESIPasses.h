@@ -29,6 +29,9 @@ struct Platform {
   static constexpr char fpga[] = "fpga";
 };
 
+#define GEN_PASS_DECL
+#include "circt/Dialect/ESI/ESIPasses.h.inc"
+
 std::unique_ptr<OperationPass<ModuleOp>> createESIPhysicalLoweringPass();
 std::unique_ptr<OperationPass<ModuleOp>> createESIBundleLoweringPass();
 std::unique_ptr<OperationPass<ModuleOp>> createESIPortLoweringPass();
@@ -40,7 +43,6 @@ std::unique_ptr<OperationPass<ModuleOp>> createESIBuildManifestPass();
 std::unique_ptr<OperationPass<ModuleOp>> createESIAppIDHierPass();
 
 /// Generate the code for registering passes.
-#define GEN_PASS_DECL
 #define GEN_PASS_REGISTRATION
 #include "circt/Dialect/ESI/ESIPasses.h.inc"
 
