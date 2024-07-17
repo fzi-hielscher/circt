@@ -46,6 +46,13 @@ static inline mlir::Value getFormattedValue(mlir::Operation *fmtOp) {
   return {};
 }
 
+// Returns 'true' iff the given operation is a 'sim.fmt' operation.
+static inline bool isFormatStringOperation(mlir::Operation *op) {
+  return llvm::isa<sim::FormatBinOp, sim::FormatDecOp, sim::FormatCharOp,
+                   sim::FormatHexOp, sim::FormatStringConcatOp,
+                   sim::FormatLitOp>(op);
+}
+
 } // namespace sim
 } // namespace circt
 
