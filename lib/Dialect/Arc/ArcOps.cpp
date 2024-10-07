@@ -8,6 +8,7 @@
 
 #include "circt/Dialect/Arc/ArcOps.h"
 #include "circt/Dialect/HW/HWOpInterfaces.h"
+#include "circt/Dialect/Sim/SimOps.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/OpImplementation.h"
@@ -633,6 +634,40 @@ LogicalResult SimStepOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
 
   return success();
 }
+
+/*
+LogicalResult TokensToTriggerOp::tryMergeWithUsers(TokensToTriggerOp op,
+RewriterBase &rewriter) { SmallVector<TriggerToTokensOp> triggerToTokenUsers;
+  SmallVector<Value> exitTokens;
+  for (auto user : op.getTrigger().getUsers()) {
+    auto ttUser = dyn_cast<TriggerToTokensOp>(user);
+    if (!ttUser)
+      return failure();
+    triggerToTokenUsers.push_back(ttUser);
+    exitTokens.push_back(ttUser.getExitToken());
+  }
+
+  if (exitTokens.empty())
+    return failure();
+
+  for (auto ttUser : triggerToTokenUsers) {
+    rewriter.replaceAllOpUsesWith(ttUser, {op.getEntryToken()});
+    rewriter.eraseOp(ttUser);
+  }
+
+  assert(op.getTrigger().getUses().empty());
+  auto joinOp = rewriter.createOrFold<TokenJoinOp>(
+      op.getLoc(), exitTokens);
+  rewriter.replaceAllUsesWith(op.getExitToken(), joinOp);
+  rewriter.eraseOp(op);
+  return success();
+}
+
+LogicalResult TokensToTriggerOp::canonicalize(TokensToTriggerOp op,
+                                              PatternRewriter &rewriter) {
+  return tryMergeWithUsers(op, rewriter);
+}
+*/
 
 #include "circt/Dialect/Arc/ArcInterfaces.cpp.inc"
 

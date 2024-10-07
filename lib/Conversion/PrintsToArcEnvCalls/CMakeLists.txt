@@ -1,5 +1,5 @@
-add_circt_conversion_library(CIRCTConvertToArcs
-  ConvertToArcs.cpp
+add_circt_conversion_library(CIRCTPrintsToArcEnvCalls
+  PrintsToArcEnvCalls.cpp
 
   DEPENDS
   CIRCTConversionPassIncGen
@@ -9,9 +9,7 @@ add_circt_conversion_library(CIRCTConvertToArcs
 
   LINK_LIBS PUBLIC
   CIRCTArc
-  CIRCTHW
-  CIRCTSeq
   CIRCTSim
-  MLIRFuncDialect
+  MLIRLLVMCommonConversion
   MLIRTransforms
 )

@@ -13,12 +13,14 @@
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/Seq/SeqOps.h"
 #include "circt/Dialect/Sim/SimOps.h"
+#include "circt/Dialect/Sim/SimTypes.h"
 #include "circt/Support/BackedgeBuilder.h"
 #include "mlir/Analysis/TopologicalSortUtils.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMAttrs.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/SCF/IR/SCF.h"
+#include "mlir/Dialect/UB/IR/UBOps.h"
 #include "mlir/IR/IRMapping.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
 #include "mlir/IR/SymbolTable.h"
@@ -110,6 +112,7 @@ struct ModuleLowering {
   DenseMap<Value, std::unique_ptr<ClockLowering>> clockLowerings;
   DenseMap<Value, GatedClockLowering> gatedClockLowerings;
   std::unique_ptr<ClockLowering> initialLowering;
+  DenseMap<Value, ImpureTokenLoopOp> tokenLoopPerClock;
   Value storageArg;
   OpBuilder clockBuilder;
   OpBuilder stateBuilder;
@@ -126,6 +129,8 @@ struct ModuleLowering {
   void addStorageArg();
   LogicalResult lowerPrimaryInputs();
   LogicalResult lowerPrimaryOutputs();
+  LogicalResult breakTokenLoops();
+
   LogicalResult lowerStates();
   LogicalResult lowerInitials();
   template <typename CallTy>
@@ -140,6 +145,9 @@ struct ModuleLowering {
   LogicalResult lowerState(TapOp tapOp);
   LogicalResult lowerExtModules(SymbolTable &symtbl);
   LogicalResult lowerExtModule(InstanceOp instOp);
+
+  LogicalResult removeImpureOps(RewriterBase& rewriter, Value exitToken, bool inlineBody);
+  LogicalResult removeImpureOps();
 
   LogicalResult cleanup();
 };
@@ -156,7 +164,7 @@ static bool shouldMaterialize(Operation *op) {
   return !isa<MemoryOp, AllocStateOp, AllocMemoryOp, AllocStorageOp,
               ClockTreeOp, PassThroughOp, RootInputOp, RootOutputOp,
               StateWriteOp, MemoryWritePortOp, igraph::InstanceOpInterface,
-              StateOp, sim::DPICallOp>(op);
+              StateOp, sim::DPICallOp, ImpureTokenLoopOp>(op);
 }
 
 static bool shouldMaterialize(Value value) {
@@ -178,6 +186,10 @@ static bool canBeMaterializedInInitializer(Operation *op) {
   if (isa<comb::CombDialect>(op->getDialect()))
     return true;
   if (isa<mlir::UnrealizedConversionCastOp>(op))
+    return true;
+  if (isa<StateReadOp>(op))
+    return true;
+  if (isa<ImpureOp, TokenJoinOp>(op))
     return true;
   // TODO: There are some other ops we probably want to allow
   return false;
@@ -209,6 +221,7 @@ Value ClockLowering::materializeValue(Value value) {
   auto addToWorklist = [&](Operation *outerOp) {
     SmallDenseSet<Value> seenOperands;
     auto &workItem = worklist.emplace_back(outerOp);
+
     outerOp->walk([&](Operation *innerOp) {
       for (auto operand : innerOp->getOperands()) {
         // Skip operands that are defined within the operation itself.
@@ -291,6 +304,9 @@ Value ClockLowering::getOrCreateOr(Value lhs, Value rhs, Location loc) {
 //===----------------------------------------------------------------------===//
 
 GatedClockLowering ModuleLowering::getOrCreateClockLowering(Value clock) {
+  if (isa_and_nonnull<InitialPseudoClockOp>(clock.getDefiningOp()))
+    return GatedClockLowering{getInitial(), Value{}};
+
   // Look through clock gates.
   if (auto ckgOp = clock.getDefiningOp<seq::ClockGateOp>()) {
     // Reuse the existing lowering for this clock gate if possible.
@@ -472,6 +488,13 @@ LogicalResult ModuleLowering::lowerStates() {
     if (failed(result))
       return failure();
   }
+
+  // Lower dangling token chains
+  for (auto &[clk, loop] : tokenLoopPerClock) {
+    getOrCreateClockLowering(clk).clock.materializeValue(loop.getExitToken());
+  }
+
+
   return success();
 }
 
@@ -540,14 +563,29 @@ LogicalResult ModuleLowering::lowerStateLike(
   if (!initialValues.empty()) {
     assert(initialValues.size() == allocatedStates.size() &&
            "Unexpected number of initializers");
+    bool isPreInitial =
+        isa_and_nonnull<InitialPseudoClockOp>(stateClock.getDefiningOp());
     auto &initialTree = getInitial();
     for (auto [alloc, init] : llvm::zip(allocatedStates, initialValues)) {
-      // TODO: Can we get away without materialization?
-      auto matierializedInit = initialTree.materializeValue(init);
-      if (!matierializedInit)
-        return failure();
-      initialTree.builder.create<StateWriteOp>(stateOp->getLoc(), alloc,
-                                               matierializedInit, Value());
+      if (isPreInitial) {
+        auto initCst = init.getDefiningOp<hw::ConstantOp>();
+        if (!initCst) {
+          stateOp->emitError("Pre-initial values must be constants.");
+          return failure();
+        }
+        OpBuilder::InsertionGuard g(initialTree.builder);
+        auto *treeBody =
+            &initialTree.treeOp->getRegions().front().getBlocks().front();
+        initialTree.builder.setInsertionPointToStart(treeBody);
+        initialTree.builder.create<PreinitializeOp>(stateOp->getLoc(), alloc,
+                                                    initCst.getValueAttr());
+      } else {
+        auto matierializedInit = initialTree.materializeValue(init);
+        if (!matierializedInit)
+          return failure();
+        initialTree.builder.create<StateWriteOp>(stateOp->getLoc(), alloc,
+                                                 matierializedInit, Value());
+      }
     }
   }
 
@@ -587,14 +625,18 @@ LogicalResult ModuleLowering::lowerState(StateOp stateOp) {
 
 LogicalResult ModuleLowering::lowerState(sim::DPICallOp callOp) {
   // Clocked call op can be considered as arc state with single latency.
-  auto stateClock = callOp.getClock();
-  if (!stateClock)
+  if (!callOp.getTrigger())
     return callOp.emitError("unclocked DPI call not implemented yet");
+
+  auto rootTrigger = dyn_cast_or_null<sim::OnEdgeOp>(
+      sim::getLocalRootTrigger(callOp.getTrigger()).getDefiningOp());
+  if (!rootTrigger || rootTrigger.getEvent() != hw::EventControl::AtPosEdge)
+    return callOp.emitError("Unsupported DPI root trigger");
 
   auto stateInputs = SmallVector<Value>(callOp.getInputs());
 
-  return lowerStateLike<func::CallOp>(callOp, stateClock, callOp.getEnable(),
-                                      Value(), stateInputs,
+  return lowerStateLike<func::CallOp>(callOp, rootTrigger.getClock(),
+                                      callOp.getEnable(), Value(), stateInputs,
                                       callOp.getCalleeAttr());
 }
 
@@ -758,6 +800,8 @@ LogicalResult ModuleLowering::cleanup() {
       return true;
     if (!op->use_empty())
       return false;
+    if (isa<ImpureOp>(op))
+      return true;
     return false;
   };
   for (auto &op : *moduleOp.getBodyBlock())
@@ -893,6 +937,112 @@ void LowerStatePass::runOnOperation() {
   }
 }
 
+LogicalResult ModuleLowering::breakTokenLoops() {
+  mlir::IRRewriter rewriter(moduleOp);
+  for (auto loopOp :
+       llvm::make_early_inc_range(moduleOp.getOps<ImpureTokenLoopOp>())) {
+    rewriter.setInsertionPointAfter(loopOp);
+    auto rootTrigger = loopOp.getInput().getDefiningOp<sim::OnEdgeOp>();
+    if (!rootTrigger) {
+      loopOp.emitOpError(" expected root trigger input.");
+      return failure();
+    }
+    if (!rootTrigger.getResult().hasOneUse()) {
+      loopOp.emitOpError(" expected single trigger user.");
+      return failure();
+    }
+    tokenLoopPerClock[rootTrigger.getClock()] = loopOp;
+  }
+  return success();
+}
+
+LogicalResult ModuleLowering::removeImpureOps(RewriterBase& rewriter, Value exitToken, bool inlineBody) {
+  SmallVector<Value> worklist;
+  worklist.push_back(exitToken);
+
+  while (!worklist.empty()) {
+    auto workItem =  worklist.pop_back_val();
+    assert(workItem.use_empty());
+    assert(isa<ImpureTokenType>(workItem.getType()));
+    auto defOp = workItem.getDefiningOp();
+    if (!defOp || isa<ImpureTokenLoopOp>(defOp))
+      continue;
+
+    if (auto joinOp = dyn_cast<TokenJoinOp>(defOp)) {
+      worklist.append(joinOp.getOperands().begin(), joinOp.getOperands().end());
+      rewriter.eraseOp(joinOp);
+      continue;
+    }
+
+    auto impureOp = dyn_cast<ImpureOp>(defOp);
+    if (!impureOp) {
+      defOp->emitError("Unexpected token operation.");
+      return failure();
+    }
+
+    assert(workItem == impureOp.getResults().back());
+    auto entryToken = impureOp.getInputs().back();
+    assert(isa<ImpureTokenType>(entryToken.getType()));
+    if (inlineBody) {
+      auto term = cast<arc::OutputOp>(impureOp.getBody().front().getTerminator());
+      rewriter.setInsertionPoint(impureOp);
+      OpBuilder::InsertPoint ip = rewriter.saveInsertionPoint();
+
+      if (!!impureOp.getCondition()) {
+        auto resTypes = impureOp.getResults().drop_back().getTypes();
+        auto scfIf = rewriter.create<scf::IfOp>(
+            impureOp.getLoc(), resTypes, impureOp.getCondition(), true, true);
+        rewriter.setInsertionPointToStart(&scfIf.getThenRegion().front());
+        rewriter.create<scf::YieldOp>(term.getLoc(),
+                                      term.getOutputs().drop_back());
+        rewriter.setInsertionPointToStart(&scfIf.getThenRegion().front());
+        ip = rewriter.saveInsertionPoint();
+        rewriter.setInsertionPointToStart(&scfIf.getElseRegion().front());
+        SmallVector<Value> poisonResults;
+        poisonResults.reserve(resTypes.size());
+        for (auto resTy : resTypes)
+          poisonResults.emplace_back(
+              rewriter.createOrFold<ub::PoisonOp>(impureOp.getLoc(), resTy));
+        rewriter.create<scf::YieldOp>(term.getLoc(), poisonResults);
+        rewriter.replaceAllUsesWith(impureOp.getResults().drop_back(),
+                                    scfIf.getResults());
+      } else {
+        rewriter.replaceAllUsesWith(impureOp.getResults().drop_back(),
+                                    term.getOutputs().drop_back());
+      }
+      rewriter.inlineBlockBefore(&impureOp.getBody().front(), ip.getBlock(),
+                                 ip.getPoint(), impureOp.getInputs());
+      rewriter.eraseOp(term);
+    }
+    rewriter.eraseOp(impureOp);
+    if (entryToken.use_empty())
+      worklist.push_back(entryToken);
+  }
+
+  return success();
+
+}
+
+LogicalResult ModuleLowering::removeImpureOps() {
+   IRRewriter rewriter(moduleOp);
+   for (auto &[clock, loopOp] : tokenLoopPerClock) {
+      auto exitToken = loopOp.getExitToken();
+      auto materializedExitToken = getOrCreateClockLowering(clock).clock.materializedValues.lookup(
+        exitToken);
+
+      rewriter.startOpModification(loopOp);
+      loopOp.getExitTokenMutable().drop();
+      rewriter.finalizeOpModification(loopOp);
+
+      if (failed(removeImpureOps(rewriter, materializedExitToken, true)))
+        return failure();
+      if (failed(removeImpureOps(rewriter, exitToken, false)))
+        return failure();
+      rewriter.eraseOp(loopOp);
+   }
+   return success();
+}
+
 LogicalResult LowerStatePass::runOnModule(HWModuleOp moduleOp,
                                           SymbolTable &symtbl) {
   LLVM_DEBUG(llvm::dbgs() << "Lowering state in `" << moduleOp.getModuleName()
@@ -918,15 +1068,21 @@ LogicalResult LowerStatePass::runOnModule(HWModuleOp moduleOp,
   lowering.clockBuilder.setInsertionPoint(clockSentinel);
 
   lowering.addStorageArg();
-  if (failed(lowering.lowerInitials()))
-    return failure();
+
   if (failed(lowering.lowerPrimaryInputs()))
     return failure();
   if (failed(lowering.lowerPrimaryOutputs()))
     return failure();
+  if (failed(lowering.breakTokenLoops()))
+    return failure();
+  if (failed(lowering.lowerInitials()))
+    return failure();
   if (failed(lowering.lowerStates()))
     return failure();
   if (failed(lowering.lowerExtModules(symtbl)))
+    return failure();
+
+  if (failed(lowering.removeImpureOps()))
     return failure();
 
   // Clean up the module body which contains a lot of operations that the

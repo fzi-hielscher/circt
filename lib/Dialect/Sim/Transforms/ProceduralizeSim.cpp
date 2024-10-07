@@ -22,7 +22,8 @@
 #include "llvm/ADT/SetVector.h"
 #include "llvm/Support/Debug.h"
 
-#include "mlir/Dialect/SCF/IR/SCF.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/IR/IRMapping.h"
 #include "mlir/Pass/Pass.h"
 
 #define DEBUG_TYPE "proceduralize-sim"
@@ -44,170 +45,139 @@ public:
   void runOnOperation() override;
 
 private:
-  LogicalResult proceduralizePrintOps(Value clock,
-                                      ArrayRef<PrintFormattedOp> printOps);
+  LogicalResult proceduralize(PrintFormattedOp printOp);
+  LogicalResult proceduralize(DPICallOp callOp);
+  void proceduralize(FinishOp finishOp);
+
   SmallVector<Operation *> getPrintTokens(PrintFormattedOp op);
   void cleanup();
-
-  // Mapping Clock -> List of printf ops
-  SmallMapVector<Value, SmallVector<PrintFormattedOp>, 2> printfOpMap;
 
   // List of formatting ops to be pruned after proceduralization.
   SmallVector<Operation *> cleanupList;
 };
 } // namespace
 
-LogicalResult ProceduralizeSimPass::proceduralizePrintOps(
-    Value clock, ArrayRef<PrintFormattedOp> printOps) {
+LogicalResult ProceduralizeSimPass::proceduralize(PrintFormattedOp printOp) {
+  // Get the flat list of formatting tokens and collect leaf tokens
+  SmallVector<Value> flatString;
+  if (auto concatInput =
+          printOp.getInput().getDefiningOp<FormatStringConcatOp>()) {
 
-  // List of uniqued values to become arguments of the TriggeredOp.
+    auto isAcyclic = concatInput.getFlattenedInputs(flatString);
+    if (failed(isAcyclic)) {
+      printOp.emitError("Cyclic format string cannot be proceduralized.");
+      return failure();
+    }
+  } else {
+    flatString.push_back(printOp.getInput());
+  }
+
+  SmallVector<Operation *> tokenList;
   SmallSetVector<Value, 4> arguments;
-  // Map printf ops -> flattened list of tokens
-  SmallDenseMap<PrintFormattedOp, SmallVector<Operation *>, 4> tokenMap;
-  SmallVector<Location> locs;
-  SmallDenseSet<Value, 1> alwaysEnabledConditions;
-
-  locs.reserve(printOps.size());
-
-  for (auto printOp : printOps) {
-    // Handle the print condition value. If it is not constant, it has to become
-    // a region argument. If it is constant false, skip the operation.
-    if (auto cstCond = printOp.getCondition().getDefiningOp<hw::ConstantOp>()) {
-      if (cstCond.getValue().isAllOnes())
-        alwaysEnabledConditions.insert(printOp.getCondition());
-      else
-        continue;
-    } else {
-      arguments.insert(printOp.getCondition());
+  for (auto &token : flatString) {
+    auto *fmtOp = token.getDefiningOp();
+    if (!fmtOp) {
+      printOp.emitError("Proceduralization of format strings passed as block "
+                        "argument is unsupported.");
+      return failure();
     }
-
-    // Accumulate locations
-    locs.push_back(printOp.getLoc());
-
-    // Get the flat list of formatting tokens and collect leaf tokens
-    SmallVector<Value> flatString;
-    if (auto concatInput =
-            printOp.getInput().getDefiningOp<FormatStringConcatOp>()) {
-
-      auto isAcyclic = concatInput.getFlattenedInputs(flatString);
-      if (failed(isAcyclic)) {
-        printOp.emitError("Cyclic format string cannot be proceduralized.");
-        return failure();
-      }
-    } else {
-      flatString.push_back(printOp.getInput());
-    }
-
-    auto &tokenList = tokenMap[printOp];
-    assert(tokenList.empty() && "printf operation visited twice.");
-
-    for (auto &token : flatString) {
-      auto *fmtOp = token.getDefiningOp();
-      if (!fmtOp) {
-        printOp.emitError("Proceduralization of format strings passed as block "
-                          "argument is unsupported.");
-        return failure();
-      }
-      tokenList.push_back(fmtOp);
-      // For non-literal tokens, the value to be formatted has to become an
-      // argument.
-      if (!llvm::isa<FormatLitOp>(fmtOp)) {
-        auto fmtVal = getFormattedValue(fmtOp);
-        assert(!!fmtVal && "Unexpected foramtting token op.");
-        arguments.insert(fmtVal);
-      }
+    tokenList.push_back(fmtOp);
+    // For non-literal tokens, the value to be formatted has to become an
+    // argument.
+    if (!llvm::isa<FormatLitOp>(fmtOp)) {
+      auto fmtVal = getFormattedValue(fmtOp);
+      assert(!!fmtVal && "Unexpected foramtting token op.");
+      arguments.insert(fmtVal);
     }
   }
 
-  // Build the hw::TriggeredOp
-  OpBuilder builder(printOps.back());
-  auto fusedLoc = builder.getFusedLoc(locs);
+  ImplicitLocOpBuilder builder(printOp.getLoc(), printOp);
 
   SmallVector<Value> argVec = arguments.takeVector();
+  SmallVector<Type> argTypes;
+  for (auto arg : argVec)
+    argTypes.emplace_back(arg.getType());
 
-  auto clockConv = builder.createOrFold<seq::FromClockOp>(fusedLoc, clock);
-  auto trigOp = builder.create<hw::TriggeredOp>(
-      fusedLoc,
-      hw::EventControlAttr::get(builder.getContext(),
-                                hw::EventControl::AtPosEdge),
-      clockConv, argVec);
+  auto procOp = builder.create<sim::TriggeredOp>(
+      TypeRange{}, printOp.getTrigger(), printOp.getCondition(),
+      ValueRange{argVec}, ArrayAttr{});
+  auto body = builder.createBlock(&procOp.getBody());
+  SmallVector<Location> locs(argTypes.size(), builder.getLoc());
+  procOp.getBody().addArguments(argTypes, locs);
 
   // Map the collected arguments to the newly created block arguments.
   IRMapping argumentMapper;
   unsigned idx = 0;
   for (auto arg : argVec) {
-    argumentMapper.map(arg, trigOp.getBodyBlock()->getArgument(idx));
+    argumentMapper.map(arg, procOp.getBody().getArgument(idx));
     idx++;
   }
 
-  // Materialize and map a 'true' constant within the TriggeredOp if required.
-  builder.setInsertionPointToStart(trigOp.getBodyBlock());
-  if (!alwaysEnabledConditions.empty()) {
-    auto cstTrue = builder.createOrFold<hw::ConstantOp>(
-        fusedLoc, IntegerAttr::get(builder.getI1Type(), 1));
-    for (auto cstCond : alwaysEnabledConditions)
-      argumentMapper.map(cstCond, cstTrue);
-  }
-
   SmallDenseMap<Operation *, Operation *> cloneMap;
-  Value prevConditionValue;
-  Block *prevConditionBlock;
 
-  for (auto printOp : printOps) {
-
-    // Throw away disabled prints
-    if (auto cstCond = printOp.getCondition().getDefiningOp<hw::ConstantOp>()) {
-      if (cstCond.getValue().isZero()) {
-        printOp.erase();
-        continue;
-      }
-    }
-
-    // Create a copy of the required token operations within the TriggeredOp's
-    // body.
-    auto tokens = tokenMap[printOp];
-    SmallVector<Value> clonedOperands;
-    builder.setInsertionPointToStart(trigOp.getBodyBlock());
-    for (auto *token : tokens) {
-      auto &fmtCloned = cloneMap[token];
-      if (!fmtCloned)
-        fmtCloned = builder.clone(*token, argumentMapper);
-      clonedOperands.push_back(fmtCloned->getResult(0));
-    }
-    // Concatenate tokens to a single value if necessary.
-    Value procPrintInput;
-    if (clonedOperands.size() != 1)
-      procPrintInput = builder.createOrFold<FormatStringConcatOp>(
-          printOp.getLoc(), clonedOperands);
-    else
-      procPrintInput = clonedOperands.front();
-
-    // Check if we can reuse the previous conditional block.
-    auto condArg = argumentMapper.lookup(printOp.getCondition());
-    if (condArg != prevConditionValue)
-      prevConditionBlock = nullptr;
-    auto *condBlock = prevConditionBlock;
-
-    // If not, create a new scf::IfOp for the condition.
-    if (!condBlock) {
-      builder.setInsertionPointToEnd(trigOp.getBodyBlock());
-      auto ifOp = builder.create<mlir::scf::IfOp>(printOp.getLoc(), TypeRange{},
-                                                  condArg, true, false);
-      builder.setInsertionPointToStart(&ifOp.getThenRegion().front());
-      builder.create<mlir::scf::YieldOp>(printOp.getLoc());
-      condBlock = builder.getBlock();
-      prevConditionValue = condArg;
-      prevConditionBlock = condBlock;
-    }
-
-    // Create the procedural print operation and prune the operations outside of
-    // the TriggeredOp.
-    builder.setInsertionPoint(condBlock->getTerminator());
-    builder.create<PrintFormattedProcOp>(printOp.getLoc(), procPrintInput);
-    cleanupList.push_back(printOp.getInput().getDefiningOp());
-    printOp.erase();
+  // Create a copy of the required token operations within the TriggeredOp's
+  // body.
+  SmallVector<Value> clonedOperands;
+  builder.setInsertionPointToStart(body);
+  for (auto *token : tokenList) {
+    auto &fmtCloned = cloneMap[token];
+    if (!fmtCloned)
+      fmtCloned = builder.clone(*token, argumentMapper);
+    clonedOperands.push_back(fmtCloned->getResult(0));
   }
+  // Concatenate tokens to a single value if necessary.
+  Value procPrintInput;
+  if (clonedOperands.size() != 1)
+    procPrintInput = builder.createOrFold<FormatStringConcatOp>(
+        printOp.getLoc(), clonedOperands);
+  else
+    procPrintInput = clonedOperands.front();
+
+  // Create the procedural print operation and prune the operations outside of
+  // the TriggeredOp.
+  builder.create<PrintFormattedProcOp>(procPrintInput);
+  cleanupList.push_back(printOp.getInput().getDefiningOp());
+  printOp.erase();
+
+  builder.create<YieldSeqOp>();
+
   return success();
+}
+
+LogicalResult ProceduralizeSimPass::proceduralize(DPICallOp callOp) {
+  assert(!!callOp.getTrigger() && "Cannot proceduralize unclocked dpi call");
+  ImplicitLocOpBuilder builder(callOp.getLoc(), callOp);
+
+  auto procOp = builder.create<sim::TriggeredOp>(
+      callOp.getResultTypes(), callOp.getTrigger(), callOp.getEnable(),
+      callOp.getInputs(), callOp.getTieoffsAttr());
+  auto body = builder.createBlock(&procOp.getBody());
+  builder.setInsertionPointToStart(body);
+  SmallVector<Location> locs(callOp.getInputs().size(), callOp.getLoc());
+  procOp.getBody().addArguments(callOp.getInputs().getTypes(), locs);
+
+  auto funcOp = builder.create<ProcCallOp>(
+      callOp.getResultTypes(), callOp.getCallee(), true, body->getArguments());
+  SmallVector<Value> results(funcOp.getResults().begin(),
+                             funcOp.getResults().end());
+  builder.create<YieldSeqOp>(results);
+  callOp.replaceAllUsesWith(procOp.getResults());
+  callOp.erase();
+  return success();
+}
+
+void ProceduralizeSimPass::proceduralize(FinishOp finishOp) {
+  ImplicitLocOpBuilder builder(finishOp.getLoc(), finishOp);
+
+  auto procOp = builder.create<sim::TriggeredOp>(
+      TypeRange{}, finishOp.getTrig(), finishOp.getCond(), ValueRange{},
+      ArrayAttr{});
+  auto body = builder.createBlock(&procOp.getBody());
+  builder.setInsertionPointToStart(body);
+
+  builder.create<FinishProcOp>();
+  builder.create<YieldSeqOp>();
+  finishOp.erase();
 }
 
 // Prune the DAGs of formatting tokens left outside of the newly created
@@ -248,20 +218,36 @@ void ProceduralizeSimPass::cleanup() {
 
 void ProceduralizeSimPass::runOnOperation() {
   LLVM_DEBUG(debugPassHeader(this) << "\n");
-  printfOpMap.clear();
   cleanupList.clear();
+
+  SmallVector<PrintFormattedOp> printOps;
+  SmallVector<DPICallOp> dpiCallOps;
 
   auto theModule = getOperation();
   // Collect printf operations grouped by their clock.
-  theModule.walk<mlir::WalkOrder::PreOrder>(
-      [&](PrintFormattedOp op) { printfOpMap[op.getClock()].push_back(op); });
+  theModule.walk([&](Operation *op) {
+    if (auto printOp = dyn_cast<PrintFormattedOp>(op))
+      printOps.push_back(printOp);
+    else if (auto dpiCallOp = dyn_cast<DPICallOp>(op))
+      if (!!dpiCallOp.getTrigger())
+        dpiCallOps.push_back(dpiCallOp);
+    if (auto finishOp = dyn_cast<FinishOp>(op))
+      proceduralize(finishOp);
+  });
 
-  // Create a hw::TriggeredOp for each clock
-  for (auto &[clock, printOps] : printfOpMap)
-    if (failed(proceduralizePrintOps(clock, printOps))) {
+  for (auto printOp : printOps) {
+    if (failed(proceduralize(printOp))) {
       signalPassFailure();
       return;
     }
+  }
+
+  for (auto dpiCallOp : dpiCallOps) {
+    if (failed(proceduralize(dpiCallOp))) {
+      signalPassFailure();
+      return;
+    }
+  }
 
   cleanup();
 }

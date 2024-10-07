@@ -252,3 +252,23 @@ LogicalResult ClockDomainOp::canonicalize(ClockDomainOp op,
 
   return success(didCanonicalizeInput || didCanoncalizeOutput);
 }
+
+OpFoldResult TokenJoinOp::fold(FoldAdaptor adaptor) {
+  if (getInputs().size() == 1)
+    return getInputs().front();
+  return {};
+}
+
+LogicalResult StateWriteOp::canonicalize(StateWriteOp op,
+                                         PatternRewriter &rewriter) {
+  if (!!op.getCondition()) {
+    if (auto cstCond = op.getCondition().getDefiningOp<hw::ConstantOp>()) {
+      if (cstCond.getValue().isZero()) {
+        rewriter.eraseOp(op);
+        return success();
+      }
+    }
+  }
+
+  return failure();
+}

@@ -14,6 +14,18 @@ include "mlir/IR/AttrTypeBase.td"
 
 class SimTypeDef<string name> : TypeDef<SimDialect, name> { }
 
+def EdgeTriggerType : SimTypeDef<"EdgeTrigger"> {
+  let parameters = (ins "::circt::hw::EventControl":$edgeEvent);
+  let mnemonic = "trigger.edge";
+  let assemblyFormat = "`<` $edgeEvent `>`";
+}
+
+def InitTriggerType : SimTypeDef<"InitTrigger"> {
+  let mnemonic = "trigger.init";
+}
+
+def AnyTriggerType : AnyTypeOf<[EdgeTriggerType, InitTriggerType]>;
+
 def FormatStringType : SimTypeDef<"FormatString"> {
   let mnemonic = "fstring";
 

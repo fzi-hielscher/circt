@@ -221,6 +221,10 @@ LogicalResult ConstantXOp::verify() {
   return success();
 }
 
+OpFoldResult ConstantXOp::fold(FoldAdaptor) {
+  return ConstantXAttr::get(getContext(), getType());
+}
+
 void ConstantZOp::getAsmResultNames(
     function_ref<void(Value, StringRef)> setNameFn) {
   SmallVector<char, 32> specialNameBuffer;
@@ -234,6 +238,10 @@ LogicalResult ConstantZOp::verify() {
   if (getWidth() <= 0)
     return emitError("unsupported type");
   return success();
+}
+
+OpFoldResult ConstantZOp::fold(FoldAdaptor) {
+  return ConstantZAttr::get(getContext(), getType());
 }
 
 //===----------------------------------------------------------------------===//

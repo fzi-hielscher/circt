@@ -17,7 +17,9 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/SymbolTable.h"
 
+#include "circt/Dialect/HW/HWEnums.h"
 #include "circt/Dialect/HW/HWOpInterfaces.h"
+#include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/Seq/SeqDialect.h"
 #include "circt/Dialect/Seq/SeqTypes.h"
 #include "circt/Dialect/Sim/SimDialect.h"
@@ -25,6 +27,7 @@
 #include "circt/Support/BuilderUtils.h"
 #include "mlir/Interfaces/CallInterfaces.h"
 #include "mlir/Interfaces/FunctionInterfaces.h"
+#include "mlir/Interfaces/InferTypeOpInterface.h"
 
 #define GET_OP_CLASSES
 #include "circt/Dialect/Sim/Sim.h.inc"
@@ -44,6 +47,25 @@ static inline mlir::Value getFormattedValue(mlir::Operation *fmtOp) {
   if (auto fmt = llvm::dyn_cast_or_null<circt::sim::FormatCharOp>(fmtOp))
     return fmt.getValue();
   return {};
+}
+
+static inline Value getLocalRootTrigger(Value trigger) {
+  if (!isa<EdgeTriggerType, InitTriggerType>(trigger.getType()))
+    return {};
+
+  while (auto defOp = trigger.getDefiningOp()) {
+    if (isa<OnInitOp, OnEdgeOp>(defOp))
+      break;
+    if (auto sequence = dyn_cast<TriggerSequenceOp>(defOp)) {
+      trigger = sequence.getParent();
+    } else if (auto anchor = dyn_cast<AnchoredTriggerOp>(defOp)) {
+      trigger = anchor.getParent();
+    } else {
+      assert(false && "Unexpected trigger op.");
+      return {};
+    }
+  }
+  return trigger;
 }
 
 } // namespace sim

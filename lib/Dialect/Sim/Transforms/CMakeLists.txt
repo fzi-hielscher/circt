@@ -1,6 +1,8 @@
 add_circt_dialect_library(CIRCTSimTransforms
+  LowerAnchoredTriggers.cpp
   LowerDPIFunc.cpp
   ProceduralizeSim.cpp
+  SerializeTriggers.cpp
 
 
   DEPENDS

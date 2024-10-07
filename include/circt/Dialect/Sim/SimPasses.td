@@ -20,8 +20,16 @@ def ProceduralizeSim : Pass<"sim-proceduralize", "hw::HWModuleOp"> {
   let description = [{Transform non-procedural simulation operations with clock
                       and enable to procedural operations wrapped in
                       a procedural region.}];
-  let dependentDialects = ["circt::hw::HWDialect, circt::seq::SeqDialect, mlir::scf::SCFDialect"];
 }
+
+def LowerAnchoredTriggers : Pass<"sim-lower-anchored-triggers", "hw::HWModuleOp"> {
+  let summary = "TODO";
+}
+
+def SerializeTriggers : Pass<"sim-serialize-triggers", "hw::HWModuleOp"> {
+  let summary = "TODO";
+}
+
 
 def LowerDPIFunc : Pass<"sim-lower-dpi-func", "mlir::ModuleOp"> {
   let summary = "Lower sim.dpi.func into func.func for the simulation flow";

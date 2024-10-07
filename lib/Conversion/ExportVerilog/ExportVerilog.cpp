@@ -3988,6 +3988,7 @@ private:
   LogicalResult visitSV(AlwaysFFOp op);
   LogicalResult visitSV(InitialOp op);
   LogicalResult visitSV(CaseOp op);
+  LogicalResult visitSV(ForkJoinOp op);
   LogicalResult visitSV(FWriteOp op);
   LogicalResult visitSV(VerbatimOp op);
   LogicalResult visitSV(MacroRefOp op);
@@ -5328,6 +5329,33 @@ LogicalResult StmtEmitter::visitSV(CaseOp op) {
 
   startStatement();
   ps << "endcase";
+  ps.addCallback({op, false});
+  emitLocationInfoAndNewLine(ops);
+  return success();
+}
+
+LogicalResult StmtEmitter::visitSV(ForkJoinOp op) {
+  emitSVAttributes(op);
+  SmallPtrSet<Operation *, 8> ops, emptyOps;
+  ops.insert(op);
+  startStatement();
+  ps.addCallback({op, true});
+  ps << "fork";
+  emitLocationInfoAndNewLine(ops);
+  ps.scopedBox(PP::bbox2, [&]() {
+    for (auto &region : op.getRegions()) {
+      auto *block = &region.front();
+      auto count = countStatements(*block);
+      if (count == BlockStatementCount::One)
+        state.pendingNewline = false;
+      else
+        startStatement();
+      emitBlockAsStatement(block, emptyOps);
+    }
+  });
+
+  startStatement();
+  ps << "join";
   ps.addCallback({op, false});
   emitLocationInfoAndNewLine(ops);
   return success();

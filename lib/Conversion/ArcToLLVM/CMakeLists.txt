@@ -11,6 +11,7 @@ add_circt_conversion_library(CIRCTArcToLLVM
   CIRCTArc
   CIRCTComb
   CIRCTSeq
+  CIRCTSim
   CIRCTCombToLLVM
   CIRCTHWToLLVM
   MLIRArithToLLVM
@@ -19,4 +20,5 @@ add_circt_conversion_library(CIRCTArcToLLVM
   MLIRLLVMCommonConversion
   MLIRSCFToControlFlow
   MLIRTransforms
+  MLIRUBToLLVM
 )

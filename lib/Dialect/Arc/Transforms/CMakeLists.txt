@@ -4,6 +4,7 @@ add_circt_dialect_library(CIRCTArcTransforms
   ArcCanonicalizer.cpp
   Dedup.cpp
   FindInitialVectors.cpp
+  FoldTriggers.cpp
   GroupResetsAndEnables.cpp
   InferMemories.cpp
   InferStateProperties.cpp
@@ -45,4 +46,5 @@ add_circt_dialect_library(CIRCTArcTransforms
   MLIRIR
   MLIRPass
   MLIRTransformUtils
+  MLIRUBDialect
 )

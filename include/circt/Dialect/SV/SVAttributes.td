@@ -10,6 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+include "mlir/IR/BuiltinAttributes.td"
+
 def MacroIdentAttr : AttrDef<SVDialect, "MacroIdent"> {
   let summary = "Macro identifier";
   let description = [{
@@ -94,4 +96,16 @@ def SVAttributeAttr : AttrDef<SVDialect, "SVAttribute"> {
     static inline llvm::StringRef
         getSVAttributesAttrName() { return "sv.attributes"; }
   }];
+}
+
+def ConstantXAttr : AttrDef<SVDialect, "ConstantX", [TypedAttrInterface]> {
+  let mnemonic = "constantX";
+  let parameters = (ins AttributeSelfTypeParameter<"">:$type);
+  let assemblyFormat = "";
+}
+
+def ConstantZAttr : AttrDef<SVDialect, "ConstantZ", [TypedAttrInterface]> {
+  let mnemonic = "constantZ";
+  let parameters = (ins AttributeSelfTypeParameter<"">:$type);
+  let assemblyFormat = "";
 }

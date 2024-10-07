@@ -263,6 +263,7 @@ static void populateHwModuleToArcPipeline(PassManager &pm) {
     pm.addPass(arc::createInferMemoriesPass(opts));
   }
   pm.addPass(sim::createLowerDPIFunc());
+  pm.nest<hw::HWModuleOp>().addPass(sim::createProceduralizeSim());
   pm.addPass(createCSEPass());
   pm.addPass(arc::createArcCanonicalizerPass());
 
@@ -277,6 +278,7 @@ static void populateHwModuleToArcPipeline(PassManager &pm) {
   if (shouldDedup)
     pm.addPass(arc::createDedupPass());
   pm.addPass(hw::createFlattenModulesPass());
+  pm.addPass(arc::createFoldTriggers());
   pm.addPass(createCSEPass());
   pm.addPass(arc::createArcCanonicalizerPass());
 
@@ -358,6 +360,7 @@ static void populateArcToLLVMPipeline(PassManager &pm) {
   if (untilReached(UntilLLVMLowering))
     return;
   pm.addPass(createConvertCombToArithPass());
+  pm.addPass(createLowerPrintsToArcEnvCalls());
   pm.addPass(createLowerArcToLLVMPass());
   pm.addPass(createCSEPass());
   pm.addPass(arc::createArcCanonicalizerPass());

@@ -11,7 +11,9 @@
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/Seq/SeqOps.h"
 #include "circt/Dialect/Sim/SimOps.h"
+#include "circt/Support/BackedgeBuilder.h"
 #include "circt/Support/Namespace.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
 #include "llvm/Support/Debug.h"
@@ -26,8 +28,9 @@ using llvm::MapVector;
 static bool isArcBreakingOp(Operation *op) {
   return op->hasTrait<OpTrait::ConstantLike>() ||
          isa<hw::InstanceOp, seq::CompRegOp, MemoryOp, ClockedOpInterface,
-             seq::InitialOp, seq::ClockGateOp, sim::DPICallOp>(op) ||
-         op->getNumResults() > 1;
+             seq::InitialOp, seq::ClockGateOp, arc::ImpureTokenLoopOp,
+             arc::GetClockFromTriggerOp, arc::ImpureOp>(op) ||
+         op->getNumResults() > 1 || isa<sim::SimDialect>(op->getDialect());
 }
 
 static LogicalResult convertInitialValue(seq::CompRegOp reg,
@@ -56,6 +59,9 @@ struct Converter {
   LogicalResult analyzeFanIn();
   void extractArcs(HWModuleOp module);
   LogicalResult absorbRegs(HWModuleOp module);
+
+  void lowerClockedProcedure(HWModuleOp moduleOp, sim::TriggeredOp proc);
+  void lowerInitialProcedure(HWModuleOp moduleOp, sim::TriggeredOp proc);
 
   /// The global namespace used to create unique definition names.
   Namespace globalNamespace;
@@ -94,15 +100,93 @@ LogicalResult Converter::run(ModuleOp module) {
   return success();
 }
 
+void Converter::lowerClockedProcedure(HWModuleOp moduleOp,
+                                      sim::TriggeredOp proc) {
+  mlir::IRRewriter rewriter(proc);
+
+  auto ttype = arc::ImpureTokenType::get(moduleOp.getContext());
+  auto bb = BackedgeBuilder(rewriter, proc.getLoc());
+  auto exitToken = bb.get(ttype, proc.getLoc());
+  auto trigToToken = rewriter.create<arc::ImpureTokenLoopOp>(
+      proc.getLoc(), proc.getTrigger(), exitToken);
+
+  SmallVector<Type> resultsTypesWithToken =
+      SmallVector<Type>(proc.getResultTypes());
+  SmallVector<Value> inputsWithToken = SmallVector<Value>(proc.getInputs());
+  resultsTypesWithToken.emplace_back(ttype);
+  inputsWithToken.emplace_back(trigToToken.getEntryToken());
+
+  auto impureOp =
+      rewriter.create<arc::ImpureOp>(proc.getLoc(), resultsTypesWithToken,
+                                     inputsWithToken, proc.getCondition());
+  exitToken.setValue(impureOp.getResults().back());
+
+  auto terminator =
+      cast<sim::YieldSeqOp>(proc.getBody().front().getTerminator());
+  auto termLoc = terminator.getLoc();
+  rewriter.setInsertionPoint(terminator);
+  SmallVector<Value> outputsWtihToken =
+      SmallVector<Value>(terminator.getInputs());
+  rewriter.moveBlockBefore(&proc.getBody().front(), &impureOp.getBody(),
+                           impureOp.getBody().end());
+  auto tokenArg = impureOp.getBody().addArgument(ttype, termLoc);
+  SmallVector<Value> outputsWithToken =
+      SmallVector<Value>(terminator.getInputs());
+  outputsWithToken.emplace_back(tokenArg);
+  rewriter.replaceOpWithNewOp<arc::OutputOp>(terminator, outputsWithToken);
+
+  if (proc.getNumResults() > 0) {
+    auto block = std::make_unique<Block>();
+    rewriter.setInsertionPointToStart(block.get());
+    block->addArguments(proc.getResultTypes(),
+                        SmallVector<Location>(proc.getNumResults(), termLoc));
+    rewriter.create<arc::OutputOp>(termLoc, block->getArguments());
+
+    rewriter.setInsertionPoint(moduleOp);
+    auto defOp = rewriter.create<DefineOp>(
+        proc->getLoc(),
+        rewriter.getStringAttr(globalNamespace.newName(
+            moduleOp.getModuleName() + "_sim_yield_seq")),
+        rewriter.getFunctionType(proc.getResultTypes(), proc.getResultTypes()));
+    defOp.getBody().push_back(block.release());
+
+    rewriter.setInsertionPoint(proc);
+    SmallVector<Value> materializedTieoffs;
+    materializedTieoffs.reserve(proc.getNumResults());
+    auto hwdialect = moduleOp.getContext()->getLoadedDialect<hw::HWDialect>();
+    for (auto tieoff : proc.getTieoffsAttr()) {
+      auto type = cast<TypedAttr>(tieoff).getType();
+      auto cstOp =
+          hwdialect->materializeConstant(rewriter, tieoff, type, proc.getLoc());
+      materializedTieoffs.append(cstOp->getResults().begin(),
+                                 cstOp->getResults().end());
+    }
+    auto clockOp = rewriter.createOrFold<arc::GetClockFromTriggerOp>(
+        proc.getLoc(), proc.getTrigger());
+
+    rewriter.replaceOpWithNewOp<arc::StateOp>(
+        proc, defOp, clockOp, proc.getCondition(), 1,
+        impureOp.getResults().drop_back(), materializedTieoffs);
+  } else {
+    rewriter.eraseOp(proc);
+  }
+}
+
 LogicalResult Converter::runOnModule(HWModuleOp module) {
   // Find all arc-breaking operations in this module and assign them an index.
   arcBreakers.clear();
   arcBreakerIndices.clear();
+
+  for (auto proc : llvm::make_early_inc_range(
+           module.getBodyBlock()->getOps<sim::TriggeredOp>()))
+    lowerClockedProcedure(module, proc);
+
   for (Operation &op : *module.getBodyBlock()) {
     if (isa<seq::InitialOp>(&op))
       continue;
-    if (op.getNumRegions() > 0)
+    if (op.getNumRegions() > 0 && !isa<ImpureOp>(op)) {
       return op.emitOpError("has regions; not supported by ConvertToArcs");
+    }
     if (!isArcBreakingOp(&op) && !isa<hw::OutputOp>(&op))
       continue;
     arcBreakerIndices[&op] = arcBreakers.size();

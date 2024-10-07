@@ -21,10 +21,14 @@
 #include "circt/Support/Namespace.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/DialectImplementation.h"
+#include "mlir/IR/IRMapping.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
+#include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Threading.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "llvm/ADT/SetVector.h"
+#include "llvm/ADT/TypeSwitch.h"
 
 #define DEBUG_TYPE "lower-sim-to-sv"
 
@@ -136,6 +140,18 @@ public:
   }
 };
 
+static sv::EventControl convertEventControl(hw::EventControl eventCtrl) {
+  switch (eventCtrl) {
+  case hw::EventControl::AtEdge:
+    return sv::EventControl::AtEdge;
+  case hw::EventControl::AtPosEdge:
+    return sv::EventControl::AtPosEdge;
+  case hw::EventControl::AtNegEdge:
+    return sv::EventControl::AtNegEdge;
+  }
+  assert(false && "Invalid event control attr");
+}
+
 template <typename FromOp, typename ToOp>
 class SimulatorStopLowering : public SimConversionPattern<FromOp> {
 public:
@@ -176,7 +192,8 @@ public:
     // Record the callee.
     state.dpiCallees.insert(op.getCalleeAttr().getAttr());
 
-    bool isClockedCall = !!op.getClock();
+    bool isClockedCall = !!op.getTrigger();
+
     bool hasEnable = !!op.getEnable();
 
     SmallVector<sv::RegOp> temporaries;
@@ -200,8 +217,10 @@ public:
       }
     };
     if (isClockedCall) {
-      Value clockCast =
-          rewriter.create<seq::FromClockOp>(loc, adaptor.getClock());
+      Value clockCast = rewriter.create<seq::FromClockOp>(
+          loc, sim::getLocalRootTrigger(adaptor.getTrigger())
+                   .getDefiningOp<OnEdgeOp>()
+                   .getClock());
       rewriter.create<sv::AlwaysOp>(
           loc, ArrayRef<sv::EventControl>{sv::EventControl::AtPosEdge},
           ArrayRef<Value>{clockCast}, [&]() {
@@ -230,6 +249,36 @@ public:
     }
 
     rewriter.replaceOp(op, reads);
+    return success();
+  }
+};
+
+class ProcCallLowering : public SimConversionPattern<sim::ProcCallOp> {
+public:
+  using SimConversionPattern<ProcCallOp>::SimConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(ProcCallOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const final {
+    // Record the callee.
+    if (op.getDpi())
+      state.dpiCallees.insert(op.getCalleeAttr().getAttr());
+
+    rewriter.replaceOpWithNewOp<sv::FuncCallProceduralOp>(
+        op, op.getResultTypes(), op.getCalleeAttr(), adaptor.getInputs());
+
+    return success();
+  }
+};
+
+class FinishProcLowering : public SimConversionPattern<sim::FinishProcOp> {
+public:
+  using SimConversionPattern<FinishProcOp>::SimConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(FinishProcOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const final {
+    rewriter.replaceOpWithNewOp<sv::FinishOp>(op);
     return success();
   }
 };
@@ -303,6 +352,369 @@ void LowerDPIFunc::addFragments(hw::HWModuleOp module,
         ArrayAttr::get(module.getContext(), fragments.takeVector()));
 }
 
+static Value materializeInitValue(OpBuilder &builder, TypedAttr cst,
+                                  Location loc) {
+  if (llvm::isa<sv::SVDialect>(cst.getDialect()))
+    return cst.getDialect()
+        .materializeConstant(builder, cst, cst.getType(), loc)
+        ->getResult(0);
+  auto *hwDialect = builder.getContext()->getLoadedDialect<hw::HWDialect>();
+  return hwDialect->materializeConstant(builder, cst, cst.getType(), loc)
+      ->getResult(0);
+}
+
+static void cleanUpTriggerTree(ArrayRef<TriggeredOp> procs) {
+  SmallVector<Operation *> cleanupList;
+  SmallVector<Operation *> cleanupNextList;
+  SmallPtrSet<Operation *, 8> erasedOps;
+  for (auto proc : procs) {
+    auto trigger = proc.getTrigger();
+    cleanupNextList.emplace_back(trigger.getDefiningOp());
+    erasedOps.insert(proc);
+    proc.erase();
+  }
+
+  bool hasChanged = true;
+  while (hasChanged && !cleanupNextList.empty()) {
+    cleanupList = std::move(cleanupNextList);
+    cleanupNextList.clear();
+    hasChanged = false;
+
+    for (auto op : cleanupList) {
+      if (!op || erasedOps.contains(op))
+        continue;
+
+      if (auto seqOp = dyn_cast<TriggerSequenceOp>(op)) {
+        if (seqOp.use_empty()) {
+          cleanupNextList.push_back(seqOp.getParent().getDefiningOp());
+          erasedOps.insert(seqOp);
+          seqOp.erase();
+          hasChanged = true;
+        } else {
+          cleanupNextList.push_back(seqOp);
+        }
+        continue;
+      }
+
+      if (isa<OnEdgeOp, OnInitOp>(op)) {
+        if (op->use_empty()) {
+          erasedOps.insert(op);
+          op->erase();
+        } else {
+          cleanupNextList.push_back(op);
+        }
+        continue;
+      }
+    }
+  }
+}
+
+static void cleanUpFormatStringTree(ArrayRef<PrintFormattedProcOp> deadFmts) {
+  SmallVector<Operation *> cleanupList;
+  SmallVector<Operation *> cleanupNextList;
+  SmallPtrSet<Operation *, 8> erasedOps;
+
+  for (auto deadFmt : deadFmts) {
+    cleanupNextList.push_back(deadFmt.getInput().getDefiningOp());
+    erasedOps.insert(deadFmt);
+    deadFmt.erase();
+  }
+
+  bool hasChanged = true;
+  while (hasChanged && !cleanupNextList.empty()) {
+    cleanupList = std::move(cleanupNextList);
+    cleanupNextList.clear();
+    hasChanged = false;
+
+    for (auto op : cleanupList) {
+      if (!op || erasedOps.contains(op))
+        continue;
+
+      if (auto concat = dyn_cast<FormatStringConcatOp>(op)) {
+        if (!concat->use_empty()) {
+          cleanupNextList.push_back(concat);
+          continue;
+        }
+        for (auto arg : concat.getInputs())
+          cleanupNextList.emplace_back(arg.getDefiningOp());
+        hasChanged = true;
+        erasedOps.insert(concat);
+        concat.erase();
+        continue;
+      }
+
+      if (isa<FormatBinOp, FormatHexOp, FormatDecOp, FormatCharOp, FormatLitOp>(
+              op)) {
+        if (op->use_empty()) {
+          erasedOps.insert(op);
+          op->erase();
+        } else {
+          cleanupNextList.push_back(op);
+        }
+        continue;
+      }
+    }
+  }
+}
+
+static LogicalResult lowerRootTrigger(Value root, ArrayRef<TriggeredOp> procs) {
+  auto rootDefOp = root.getDefiningOp();
+  assert(!!rootDefOp);
+  OpBuilder builder(rootDefOp);
+  SmallVector<Location> locs;
+  locs.reserve(procs.size() + 1);
+  locs.emplace_back(rootDefOp->getLoc());
+
+  SmallDenseMap<TriggeredOp, SmallVector<Value>> resultToRegMap;
+
+  for (auto proc : procs) {
+    locs.emplace_back(proc.getLoc());
+    if (proc.getNumResults() > 0) {
+      SmallVector<Value> newRegs;
+      SmallVector<Value> reads;
+      for (auto [res, tieoff] :
+           llvm::zip(proc.getResults(), *proc.getTieoffs())) {
+        auto cst = materializeInitValue(builder, cast<TypedAttr>(tieoff),
+                                        proc.getLoc());
+        auto reg =
+            builder.create<sv::RegOp>(proc.getLoc(), res.getType(),
+                                      StringAttr(), hw::InnerSymAttr(), cst);
+        auto regRead = builder.createOrFold<sv::ReadInOutOp>(proc.getLoc(),
+                                                             reg.getResult());
+        newRegs.emplace_back(reg.getResult());
+        reads.emplace_back(regRead);
+      }
+      proc.replaceAllUsesWith(reads);
+      resultToRegMap.insert(
+          std::pair<TriggeredOp, SmallVector<Value>>{proc, std::move(newRegs)});
+    }
+  }
+
+  auto fusedLoc = FusedLoc::get(builder.getContext(), locs);
+
+  struct BuildStackEntry {
+    PointerUnion<Value, Operation *> pv;
+    OpBuilder::InsertPoint ip;
+  };
+
+  auto ifDefOp =
+      builder.create<sv::IfDefOp>(fusedLoc, "SYNTHESIS", [] {}, [] {});
+  builder.setInsertionPointToStart(ifDefOp.getElseBlock());
+
+  if (isa<OnInitOp>(rootDefOp)) {
+    auto initOp = builder.create<sv::InitialOp>(fusedLoc);
+    builder.setInsertionPointToStart(initOp.getBodyBlock());
+  } else if (auto edgeOp = dyn_cast<OnEdgeOp>(rootDefOp)) {
+    SmallVector<Value, 1> convClock;
+    builder.createOrFold<mlir::UnrealizedConversionCastOp>(
+        convClock, fusedLoc, TypeRange{builder.getI1Type()}, edgeOp.getClock());
+    auto alwaysOp = builder.create<sv::AlwaysFFOp>(
+        fusedLoc, convertEventControl(edgeOp.getEvent()), convClock.front());
+    builder.setInsertionPointToStart(alwaysOp.getBodyBlock());
+  } else {
+    root.getDefiningOp()->emitError("Unsupported trigger root.");
+    return failure();
+  }
+
+  SmallVector<BuildStackEntry> buildStack;
+  buildStack.emplace_back(BuildStackEntry{root, builder.saveInsertionPoint()});
+  while (!buildStack.empty()) {
+    auto popVal = buildStack.pop_back_val();
+    builder.restoreInsertionPoint(popVal.ip);
+
+    if (auto trigVal = dyn_cast<Value>(popVal.pv)) {
+      auto users = trigVal.getUsers();
+      if (users.empty())
+        continue;
+      if (trigVal.hasOneUse()) {
+        buildStack.emplace_back(
+            BuildStackEntry{users.begin().getCurrent().getUser(), popVal.ip});
+        continue;
+      }
+      SmallVector<Operation *> userOps(trigVal.getUsers().begin(),
+                                       trigVal.getUsers().end());
+      auto forkJoinOp =
+          builder.create<sv::ForkJoinOp>(rootDefOp->getLoc(), userOps.size());
+      for (auto const &[user, region] :
+           llvm::reverse(llvm::zip(userOps, forkJoinOp.getRegions()))) {
+        Block *block = builder.createBlock(&region);
+        auto newIp = OpBuilder::InsertPoint(block, block->begin());
+        buildStack.emplace_back(BuildStackEntry{user, newIp});
+      }
+      continue;
+    }
+
+    auto op = cast<Operation *>(popVal.pv);
+
+    if (auto sequence = dyn_cast<TriggerSequenceOp>(op)) {
+      for (auto res : llvm::reverse(sequence.getResults()))
+        buildStack.emplace_back(BuildStackEntry{res, popVal.ip});
+      continue;
+    }
+
+    auto procedure = dyn_cast<TriggeredOp>(op);
+    if (!procedure) {
+      op->emitWarning("Unable to lower trigger user.");
+      continue;
+    }
+
+    auto enable = procedure.getCondition();
+    bool condional = false;
+    if (enable) {
+      if (auto constEn = enable.getDefiningOp<hw::ConstantOp>()) {
+        if (constEn.getValue().isZero())
+          continue;
+      } else {
+        condional = true;
+      }
+    }
+
+    auto yield = cast<YieldSeqOp>(procedure.getBody().front().getTerminator());
+    auto &regs = resultToRegMap[procedure];
+    mlir::IRRewriter rewriter(builder);
+
+    if (condional) {
+      auto ifOp = builder.create<sv::IfOp>(procedure.getLoc(), enable);
+      builder.setInsertionPointToStart(ifOp.getThenBlock());
+    }
+
+    OpBuilder::InsertPoint ip = builder.saveInsertionPoint();
+    rewriter.inlineBlockBefore(&procedure.getBody().front(), ip.getBlock(),
+                               ip.getPoint(), procedure.getInputs());
+
+    assert(regs.size() == yield.getNumOperands() &&
+           "Failed to lookup materialized result registers");
+    for (auto [reg, res] : llvm::zip(regs, yield.getOperands()))
+      builder.create<sv::PAssignOp>(yield.getLoc(), reg, res);
+    yield.erase();
+  }
+
+  return success();
+}
+
+static LogicalResult lowerProcPrint(OpBuilder &builder,
+                                    PrintFormattedProcOp printOp) {
+  SmallVector<Value, 4> flatString;
+  if (auto concat = printOp.getInput().getDefiningOp<FormatStringConcatOp>()) {
+    auto isAcyclic = concat.getFlattenedInputs(flatString);
+    if (failed(isAcyclic))
+      return printOp.emitOpError("Format string is cyclic.");
+  } else {
+    flatString.push_back(printOp.getInput());
+  }
+
+  SmallString<64> fmtString;
+  SmallVector<Value> substitutions;
+  SmallVector<Location> locs;
+  for (auto fmt : flatString) {
+    auto defOp = fmt.getDefiningOp();
+    if (!defOp)
+      return printOp.emitError(
+          "Formatting tokens must not be passed as arguments.");
+    bool ok =
+        llvm::TypeSwitch<Operation *, bool>(defOp)
+            .Case<FormatLitOp>([&](auto literal) {
+              fmtString.reserve(fmtString.size() + literal.getLiteral().size());
+              for (auto c : literal.getLiteral()) {
+                fmtString.push_back(c);
+                if (c == '%')
+                  fmtString.push_back('%');
+              }
+              return true;
+            })
+            .Case<FormatBinOp>([&](auto bin) {
+              fmtString.push_back('%');
+              fmtString.push_back('b');
+              substitutions.push_back(bin.getValue());
+              return true;
+            })
+            .Case<FormatDecOp>([&](auto dec) {
+              fmtString.push_back('%');
+              fmtString.push_back('d');
+              Type ty = dec.getValue().getType();
+              Value conv = builder.createOrFold<sv::SystemFunctionOp>(
+                  dec.getLoc(), ty, dec.getIsSigned() ? "signed" : "unsigned",
+                  dec.getValue());
+              substitutions.push_back(conv);
+              return true;
+            })
+            .Case<FormatHexOp>([&](auto hex) {
+              fmtString.push_back('%');
+              fmtString.push_back('h');
+              substitutions.push_back(hex.getValue());
+              return true;
+            })
+            .Case<FormatCharOp>([&](auto c) {
+              fmtString.push_back('%');
+              fmtString.push_back('c');
+              substitutions.push_back(c.getValue());
+              return true;
+            })
+            .Default([&](Operation *op) {
+              op->emitError("Unsupported format specifier op.");
+              return false;
+            });
+    if (!ok)
+      return failure();
+    locs.push_back(defOp->getLoc());
+  }
+  locs.push_back(printOp.getLoc());
+  auto fusedLoc = FusedLoc::get(builder.getContext(), locs);
+  Value stdErr = builder.createOrFold<hw::ConstantOp>(
+      printOp.getLoc(), builder.getI32IntegerAttr(0x80000002));
+  builder.create<sv::FWriteOp>(fusedLoc, stdErr,
+                               builder.getStringAttr(fmtString), substitutions);
+  return success();
+}
+
+static LogicalResult lowerProceuralRegion(Region &body) {
+  SmallVector<PrintFormattedProcOp> printCleanupList;
+
+  bool hasFailed = false;
+  body.walk([&](PrintFormattedProcOp printOp) {
+    OpBuilder builder(printOp);
+    if (failed(lowerProcPrint(builder, printOp)))
+      hasFailed = true;
+    printCleanupList.push_back(printOp);
+  });
+
+  if (hasFailed)
+    return failure();
+
+  cleanUpFormatStringTree(printCleanupList);
+  return success(!hasFailed);
+}
+
+static LogicalResult lowerTriggeredOps(hw::HWModuleOp hwModuleOp) {
+  SmallDenseMap<Value, SmallVector<TriggeredOp>, 2> rootTriggers;
+
+  for (auto procOp : hwModuleOp.getOps<TriggeredOp>()) {
+    auto localRoot = getLocalRootTrigger(procOp.getTrigger());
+    if (!localRoot) {
+      procOp.emitError("Unable to find root trigger.");
+      return failure();
+    }
+    if (isa<BlockArgument>(localRoot)) {
+      procOp.emitError(
+          "Lowering cross-module triggers is currently unsupported.");
+      return failure();
+    }
+    rootTriggers[localRoot].emplace_back(procOp);
+    if (failed(lowerProceuralRegion(procOp.getBody())))
+      return failure();
+  }
+
+  OpBuilder builder(hwModuleOp);
+  for (auto &[root, procs] : rootTriggers)
+    if (succeeded(lowerRootTrigger(root, procs))) {
+      cleanUpTriggerTree(procs);
+    } else {
+      return failure();
+    }
+
+  return success();
+}
+
 namespace {
 struct SimToSVPass : public circt::impl::LowerSimToSVBase<SimToSVPass> {
   void runOnOperation() override {
@@ -316,7 +728,10 @@ struct SimToSVPass : public circt::impl::LowerSimToSVBase<SimToSVPass> {
       lowerDPIFunc.lower(func);
 
     std::atomic<bool> usedSynthesisMacro = false;
-    auto lowerModule = [&](hw::HWModuleOp module) {
+    auto lowerModule = [&](hw::HWModuleOp moduleOp) {
+      if (failed(lowerTriggeredOps(moduleOp)))
+        return failure();
+
       SimConversionState state;
       ConversionTarget target(*context);
       target.addIllegalDialect<SimDialect>();
@@ -328,21 +743,24 @@ struct SimToSVPass : public circt::impl::LowerSimToSVBase<SimToSVPass> {
       RewritePatternSet patterns(context);
       patterns.add<PlusArgsTestLowering>(context, state);
       patterns.add<PlusArgsValueLowering>(context, state);
-      patterns.add<SimulatorStopLowering<sim::FinishOp, sv::FinishOp>>(context,
-                                                                       state);
+
       patterns.add<SimulatorStopLowering<sim::FatalOp, sv::FatalOp>>(context,
                                                                      state);
+      patterns.add<FinishProcLowering>(context, state);
       patterns.add<DPICallLowering>(context, state);
-      auto result = applyPartialConversion(module, target, std::move(patterns));
+      patterns.add<ProcCallLowering>(context, state);
+
+      auto result =
+          applyPartialConversion(moduleOp, target, std::move(patterns));
 
       if (failed(result))
         return result;
 
       // Set the emit fragment.
-      lowerDPIFunc.addFragments(module, state.dpiCallees.takeVector());
+      lowerDPIFunc.addFragments(moduleOp, state.dpiCallees.takeVector());
 
-      if (state.usedSynthesisMacro)
-        usedSynthesisMacro = true;
+      //  if (state.usedSynthesisMacro)
+      usedSynthesisMacro = true;
       return result;
     };
 

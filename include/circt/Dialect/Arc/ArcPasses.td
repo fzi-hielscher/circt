@@ -58,6 +58,14 @@ def Dedup : Pass<"arc-dedup", "mlir::ModuleOp"> {
   ];
 }
 
+def FoldTriggers : Pass<"arc-fold-triggers", "mlir::ModuleOp"> {
+  let summary = "TODO";
+  let description = [{
+    TODO
+  }];
+  let dependentDialects = ["arc::ArcDialect"];
+}
+
 def PrintCostModel : Pass<"arc-print-cost-model", "mlir::ModuleOp"> {
   let summary = "A dymmy pass to test analysis passes";
   let constructor = "circt::arc::createPrintCostModelPass()";
@@ -199,7 +207,8 @@ def LowerState : Pass<"arc-lower-state", "mlir::ModuleOp"> {
   let constructor = "circt::arc::createLowerStatePass()";
   let dependentDialects = [
     "arc::ArcDialect", "mlir::scf::SCFDialect", "mlir::func::FuncDialect",
-    "mlir::LLVM::LLVMDialect", "comb::CombDialect", "seq::SeqDialect"
+    "mlir::LLVM::LLVMDialect", "comb::CombDialect", "seq::SeqDialect",
+    "mlir::ub::UBDialect"
   ];
 }
 
@@ -219,7 +228,7 @@ def LowerVectorizations : Pass<"arc-lower-vectorizations", "mlir::ModuleOp"> {
     This pass lowers `arc.vectorize` operations. By default, the operation will
     be fully lowered (i.e., the op disappears in the IR). Alternatively, it can
     be partially lowered.
-    
+
     The "mode" pass option allows to only lower the boundary, only the body, or
     only inline the body given that both the boundary and the body are already
     lowered.

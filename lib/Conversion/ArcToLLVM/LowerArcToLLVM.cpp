@@ -20,6 +20,7 @@
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Conversion/SCFToControlFlow/SCFToControlFlow.h"
+#include "mlir/Conversion/UBToLLVM/UBToLLVM.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Index/IR/IndexOps.h"
@@ -611,6 +612,7 @@ void LowerArcToLLVMPass::runOnOperation() {
   // MLIR patterns.
   populateSCFToControlFlowConversionPatterns(patterns);
   populateFuncToLLVMConversionPatterns(converter, patterns);
+  ub::populateUBToLLVMConversionPatterns(converter, patterns);
   cf::populateControlFlowToLLVMConversionPatterns(converter, patterns);
   arith::populateArithToLLVMConversionPatterns(converter, patterns);
   populateAnyFunctionOpInterfaceTypeConversionPattern(patterns, converter);

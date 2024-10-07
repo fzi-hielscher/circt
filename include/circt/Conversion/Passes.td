@@ -654,7 +654,8 @@ def ConvertToArcs : Pass<"convert-to-arcs", "mlir::ModuleOp"> {
     latency.
   }];
   let constructor = "circt::createConvertToArcsPass()";
-  let dependentDialects = ["circt::arc::ArcDialect", "circt::hw::HWDialect"];
+  let dependentDialects = ["circt::arc::ArcDialect", "circt::hw::HWDialect",
+   "mlir::func::FuncDialect"];
   let options = [
     Option<"tapRegisters", "tap-registers", "bool", "true",
       "Make registers observable">,
@@ -720,6 +721,20 @@ def LowerArcToLLVM : Pass<"lower-arc-to-llvm", "mlir::ModuleOp"> {
     "mlir::LLVM::LLVMDialect",
     "mlir::scf::SCFDialect",
     "mlir::func::FuncDialect"
+  ];
+}
+
+//===----------------------------------------------------------------------===//
+// LowerPrintsToArcEnvCalls
+//===----------------------------------------------------------------------===//
+
+def LowerPrintsToArcEnvCalls : Pass<"lower-prints-to-arc-env-calls",
+   "mlir::ModuleOp"> {
+  let summary = "TODO";
+  let dependentDialects = [
+    "arc::ArcDialect",
+    "mlir::scf::SCFDialect",
+    "mlir::LLVM::LLVMDialect",
   ];
 }
 

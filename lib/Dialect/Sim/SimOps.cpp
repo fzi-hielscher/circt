@@ -17,6 +17,7 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Interfaces/FunctionImplementation.h"
 #include "llvm/ADT/MapVector.h"
+#include "llvm/ADT/SmallPtrSet.h"
 
 using namespace mlir;
 using namespace circt;
@@ -69,17 +70,29 @@ ParseResult DPIFuncOp::parse(OpAsmParser &parser, OperationState &result) {
   return success();
 }
 
-LogicalResult
-sim::DPICallOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
+template <typename Op>
+static LogicalResult verifySymbolCall(Op callOp,
+                                      SymbolTableCollection &symbolTable) {
   auto referencedOp =
-      symbolTable.lookupNearestSymbolFrom(*this, getCalleeAttr());
+      symbolTable.lookupNearestSymbolFrom(callOp, callOp.getCalleeAttr());
   if (!referencedOp)
-    return emitError("cannot find function declaration '")
-           << getCallee() << "'";
+    return callOp.emitError("cannot find function declaration '")
+           << callOp.getCallee() << "'";
   if (isa<func::FuncOp, sim::DPIFuncOp>(referencedOp))
     return success();
-  return emitError("callee must be 'sim.dpi.func' or 'func.func' but got '")
+  return callOp.emitError(
+             "callee must be 'sim.dpi.func' or 'func.func' but got '")
          << referencedOp->getName() << "'";
+}
+
+LogicalResult
+sim::DPICallOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
+  return verifySymbolCall(*this, symbolTable);
+}
+
+LogicalResult
+sim::ProcCallOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
+  return verifySymbolCall(*this, symbolTable);
 }
 
 void DPIFuncOp::print(OpAsmPrinter &p) {
@@ -395,6 +408,167 @@ LogicalResult PrintFormattedProcOp::canonicalize(PrintFormattedProcOp op,
     }
   }
   return failure();
+}
+
+LogicalResult DPICallOp::verify() {
+
+  auto numTieOffs = !getTieoffs() ? 0 : getTieoffsAttr().size();
+
+  if (numTieOffs != getNumResults())
+    return emitOpError(
+        "Number of results must match number of tie-off constants");
+
+  if (numTieOffs == 0)
+    return success();
+
+  bool typesMatch = true;
+  for (auto [res, tieoff] : llvm::zip(getResultTypes(), getTieoffsAttr())) {
+    if (res != cast<TypedAttr>(tieoff).getType()) {
+      emitOpError("Type of tie-offs must match type of results");
+      typesMatch = false;
+      break;
+    }
+  }
+  return success(typesMatch);
+}
+
+// --- OnEdgeOp ---
+
+LogicalResult OnEdgeOp::inferReturnTypes(
+    MLIRContext *context, std::optional<Location> location, ValueRange operands,
+    DictionaryAttr attributes, OpaqueProperties properties, RegionRange regions,
+    SmallVectorImpl<Type> &inferredReturnTypes) {
+  auto eventAttr = properties.as<OnEdgeOp::Properties *>()->getEvent();
+  inferredReturnTypes.emplace_back(
+      EdgeTriggerType::get(context, eventAttr.getValue()));
+  return success();
+}
+
+// --- TriggeredOp ---
+
+LogicalResult TriggeredOp::verify() {
+  if (getNumResults() > 0 && !getTieoffs())
+    return emitError("Tie-off constants must be provided for all results.");
+  auto numTieoffs = !getTieoffs() ? 0 : getTieoffsAttr().size();
+  if (numTieoffs != getNumResults())
+    return emitError(
+        "Number of tie-off constants does not match number of results.");
+  if (numTieoffs == 0)
+    return success();
+  unsigned idx = 0;
+  bool failed = false;
+  for (const auto &[res, tieoff] :
+       llvm::zip(getResultTypes(), getTieoffsAttr())) {
+    if (res != cast<TypedAttr>(tieoff).getType()) {
+      emitError("Tie-off type does not match for result at index " +
+                Twine(idx));
+      failed = true;
+    }
+    ++idx;
+  }
+  return success(!failed);
+}
+
+// --- TriggerSequenceOp ---
+
+LogicalResult TriggerSequenceOp::inferReturnTypes(
+    MLIRContext *context, std::optional<Location> location, ValueRange operands,
+    DictionaryAttr attributes, OpaqueProperties properties, RegionRange regions,
+    SmallVectorImpl<Type> &inferredReturnTypes) {
+  // Create N results matching the type of the parent trigger, where N is the
+  // specified length of the sequence.
+  auto lengthAttr =
+      properties.as<TriggerSequenceOp::Properties *>()->getLength();
+  uint32_t len = lengthAttr.getValue().getZExtValue();
+  Type trigType = operands.front().getType();
+  inferredReturnTypes.resize_for_overwrite(len);
+  for (size_t i = 0; i < len; ++i)
+    inferredReturnTypes[i] = trigType;
+  return success();
+}
+
+LogicalResult TriggerSequenceOp::verify() {
+  if (getLength() != getNumResults())
+    return emitOpError("specified length does not match number of results.");
+  return success();
+}
+
+LogicalResult TriggerSequenceOp::fold(FoldAdaptor adaptor,
+                                      SmallVectorImpl<OpFoldResult> &results) {
+  // Fold trivial sequences to the parent trigger.
+  if (getLength() == 1) {
+    results.push_back(getParent());
+    return success();
+  }
+  return failure();
+}
+
+LogicalResult TriggerSequenceOp::canonicalize(TriggerSequenceOp op,
+                                              PatternRewriter &rewriter) {
+
+  // Check if there are unused results (which can be removed) or
+  // non-concurrent sub-sequences (which can be inlined).
+  auto getSingleSequenceUser = [](Value trigger) -> TriggerSequenceOp {
+    if (!trigger.hasOneUse())
+      return {};
+    return dyn_cast<TriggerSequenceOp>(trigger.use_begin()->getOwner());
+  };
+
+  bool canBeChanged = false;
+  for (auto res : op.getResults()) {
+    auto singleSeqUser = getSingleSequenceUser(res);
+    if (singleSeqUser == op) {
+      op.emitWarning("Recursive trigger sequence.");
+      return failure();
+    }
+    if (res.use_empty() || !!singleSeqUser) {
+      canBeChanged = true;
+      break;
+    }
+  }
+
+  if (!canBeChanged)
+    return failure();
+
+  // Build a list of new result values.
+  SmallVector<Value> resultValues;
+  SmallVector<Location> locs;
+  SmallVector<TriggerSequenceOp> childSeqs;
+  locs.emplace_back(op.getLoc());
+  resultValues.reserve(op.getNumResults());
+  for (auto res : op.getResults()) {
+    if (res.use_empty())
+      continue;
+
+    if (auto seqUser = getSingleSequenceUser(res)) {
+      resultValues.append(seqUser.getResults().begin(),
+                          seqUser.getResults().end());
+      locs.emplace_back(seqUser.getLoc());
+      childSeqs.emplace_back(seqUser);
+    } else {
+      resultValues.emplace_back(res);
+    }
+  }
+
+  // Remove empty sequences.
+  if (resultValues.empty()) {
+    rewriter.eraseOp(op);
+    return success();
+  }
+
+  // Replace the current operation with a new sequence.
+  rewriter.setInsertionPoint(op);
+  auto fusedLoc = FusedLoc::get(rewriter.getContext(), locs);
+  auto newOp = rewriter.create<TriggerSequenceOp>(fusedLoc, op.getParent(),
+                                                  resultValues.size());
+  for (auto [rval, newRes] : llvm::zip(resultValues, newOp.getResults()))
+    rewriter.replaceAllUsesWith(rval, newRes);
+  // Remove sequences that have been inlined
+  for (auto child : childSeqs)
+    rewriter.eraseOp(child);
+
+  rewriter.eraseOp(op);
+  return success();
 }
 
 //===----------------------------------------------------------------------===//

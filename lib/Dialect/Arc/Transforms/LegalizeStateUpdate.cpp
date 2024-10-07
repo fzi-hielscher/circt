@@ -30,8 +30,7 @@ using namespace arc;
 
 /// Check if an operation partakes in state accesses.
 static bool isOpInteresting(Operation *op) {
-  if (isa<InitialOp>(op))
-    return false;
+
   if (isa<StateReadOp, StateWriteOp, CallOpInterface, CallableOpInterface>(op))
     return true;
   if (op->getNumRegions() > 0)
@@ -547,6 +546,27 @@ moveMemoryWritesAfterLastRead(Region &region, const DenseSet<Value> &memories,
   return success();
 }
 
+static LogicalResult replacePreinitilaizeOps(InitialOp initOp) {
+  IRRewriter rewriter(initOp);
+  auto hwdialect = initOp.getContext()->getLoadedDialect<hw::HWDialect>();
+  rewriter.setInsertionPointToStart(&initOp.getBody().getBlocks().front());
+  for (auto preinit :
+       llvm::make_early_inc_range(initOp.getOps<PreinitializeOp>())) {
+    auto cst = hwdialect->materializeConstant(rewriter, preinit.getValue(),
+                                              preinit.getValue().getType(),
+                                              preinit.getLoc());
+    if (!cst) {
+      preinit.emitError("Unable to materialize value as constant.");
+      return failure();
+    }
+    auto writeOp = rewriter.create<StateWriteOp>(
+        preinit.getLoc(), preinit.getState(), cst->getResult(0), Value{});
+    rewriter.eraseOp(preinit);
+    rewriter.setInsertionPointAfter(writeOp);
+  }
+  return success();
+}
+
 //===----------------------------------------------------------------------===//
 // Pass Infrastructure
 //===----------------------------------------------------------------------===//
@@ -590,6 +610,11 @@ void LegalizeStateUpdatePass::runOnOperation() {
     return signalPassFailure();
   numLegalizedWrites += legalizer.numLegalizedWrites;
   numUpdatedReads += legalizer.numUpdatedReads;
+
+  for (auto model : module.getOps<ModelOp>())
+    for (auto initOp : model.getOps<InitialOp>())
+      if (failed(replacePreinitilaizeOps(initOp)))
+        return signalPassFailure();
 }
 
 std::unique_ptr<Pass> arc::createLegalizeStateUpdatePass() {

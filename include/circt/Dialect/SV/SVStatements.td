@@ -342,6 +342,15 @@ def InitialOp : SVOp<"initial", [SingleBlock, NoTerminator, NoRegionArguments,
   }];
 }
 
+def ForkJoinOp : SVOp<"fork_join", [NoTerminator, NoRegionArguments,
+                                 RecursiveMemoryEffects,
+                                 RecursivelySpeculatable,
+                                 ProceduralRegion, ProceduralOp]> {
+
+  let regions = (region VariadicRegion<SizedRegion<1>>:$regions);
+  let assemblyFormat = "attr-dict-with-keyword $regions";
+}
+
 def CaseStmt: I32EnumAttrCase<"CaseStmt", 0, "case">;
 def CaseXStmt: I32EnumAttrCase<"CaseXStmt", 1, "casex">;
 def CaseZStmt: I32EnumAttrCase<"CaseZStmt", 2, "casez">;
@@ -931,7 +940,7 @@ def FuncOp : SVOp<"func",
      [IsolatedFromAbove, Symbol, OpAsmOpInterface, ProceduralRegion,
       DeclareOpInterfaceMethods<HWModuleLike>,
       DeclareOpInterfaceMethods<PortList>,
-      FunctionOpInterface, HasParent<"mlir::ModuleOp">, 
+      FunctionOpInterface, HasParent<"mlir::ModuleOp">,
       HWEmittableModuleLike]> {
   let summary = "A SystemVerilog function";
   let description = [{

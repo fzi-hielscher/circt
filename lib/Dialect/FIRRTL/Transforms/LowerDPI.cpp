@@ -185,8 +185,20 @@ LogicalResult LowerDPI::lower() {
         outputTypes.push_back(
             lowerDPIArgumentType(dpiOp.getResult().getType()));
 
+      Value trigger =
+          !clock ? Value{} : builder.createOrFold<sim::OnEdgeOp>(clock);
+      if (trigger)
+        trigger = builder.createOrFold<sim::AnchoredTriggerOp>(trigger);
+
+      SmallVector<Attribute> tieoffs;
+      tieoffs.reserve(outputTypes.size());
+      for (auto outType : outputTypes)
+        tieoffs.emplace_back(
+            sv::ConstantXAttr::get(builder.getContext(), outType));
+
       auto call = builder.create<sim::DPICallOp>(
-          outputTypes, firstDPIDecl.getSymNameAttr(), clock, enable, inputs);
+          outputTypes, firstDPIDecl.getSymNameAttr(), trigger, enable, inputs,
+          builder.getArrayAttr(tieoffs));
       if (!call.getResults().empty()) {
         // Insert unrealized conversion cast HW type to FIRRTL type.
         auto result = builder

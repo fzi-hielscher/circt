@@ -14,11 +14,13 @@ include "circt/Dialect/Arc/ArcInterfaces.td"
 include "circt/Dialect/Arc/ArcTypes.td"
 include "circt/Dialect/HW/HWTypes.td"
 include "circt/Dialect/Seq/SeqTypes.td"
+include "circt/Dialect/Sim/SimTypes.td"
 include "mlir/IR/EnumAttr.td"
 include "mlir/Interfaces/FunctionInterfaces.td"
 include "mlir/IR/OpAsmInterface.td"
 include "mlir/IR/RegionKindInterface.td"
 include "mlir/IR/SymbolInterfaces.td"
+include "mlir/IR/BuiltinAttributeInterfaces.td"
 include "mlir/Interfaces/CallInterfaces.td"
 include "mlir/Interfaces/ControlFlowInterfaces.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
@@ -113,7 +115,7 @@ def DefineOp : ArcOp<"define", [
 
 def OutputOp : ArcOp<"output", [
   Terminator,
-  ParentOneOf<["DefineOp", "LutOp", "ClockDomainOp"]>,
+  ParentOneOf<["DefineOp", "LutOp", "ClockDomainOp, ImpureOp"]>,
   Pure,
   ReturnLike
 ]> {
@@ -278,6 +280,20 @@ def CallOp : ArcOp<"call", [
     void setCalleeFromCallable(mlir::CallInterfaceCallable callee) {
       (*this)->setAttr(getArcAttrName(), callee.get<mlir::SymbolRefAttr>());
     }
+  }];
+}
+
+def ImpureOp : ArcOp<"impure", [RecursiveMemoryEffects, RecursivelySpeculatable,
+  IsolatedFromAbove, SingleBlockImplicitTerminator<"arc::OutputOp">, AttrSizedOperandSegments
+]> {
+  let arguments = (ins Variadic<AnyType>:$inputs, Optional<I1>:$condition);
+  let results = (outs Variadic<AnyType>:$outputs);
+  let regions = (region SizedRegion<1>:$body);
+
+  let assemblyFormat = [{
+   `(` $inputs `)`  (`if` $condition^)? attr-dict-with-keyword
+   $body
+   `:`functional-type($inputs, $outputs)
   }];
 }
 
@@ -588,6 +604,7 @@ def StateWriteOp : ArcOp<"state_write", [
   let assemblyFormat = [{
     $state `=` $value (`if` $condition^)? attr-dict `:` type($state)
   }];
+  let hasCanonicalizeMethod = true;
 }
 
 //===----------------------------------------------------------------------===//
@@ -903,6 +920,39 @@ def VectorizeReturnOp : ArcOp<"vectorize.return", [
   let summary = "arc.vectorized terminator";
   let arguments = (ins AnyType:$value);
   let assemblyFormat = "operands attr-dict `:` qualified(type(operands))";
+}
+
+def ImpureTokenLoopOp : ArcOp<"impure_token_loop", [Pure]> {
+  let arguments = (ins AnyTriggerType:$input, ImpureTokenType:$exitToken);
+  let results = (outs ImpureTokenType:$entryToken);
+  let assemblyFormat = "$input `,` $exitToken  attr-dict `:` qualified(type($input))";
+}
+
+def TokenJoinOp : ArcOp<"token_join", [Pure, Commutative]> {
+  let arguments = (ins Variadic<ImpureTokenType>:$inputs);
+  let results = (outs ImpureTokenType:$output);
+  let assemblyFormat = "`(` $inputs `)` attr-dict ";
+  let hasFolder = 1;
+}
+
+def GetClockFromTriggerOp : ArcOp<"get_clock", [Pure]> {
+  let arguments = (ins AnyTriggerType:$trigger);
+  let results = (outs ClockType:$clock);
+  let assemblyFormat = "$trigger attr-dict `:` qualified(type($trigger))";
+}
+
+def InitialPseudoClockOp : ArcOp<"initial_pseudo_clock", [Pure]> {
+  let results = (outs ClockType:$output);
+  let assemblyFormat = "attr-dict";
+}
+
+def PreinitializeOp : ArcOp<"preinitialize",
+[MemoryEffects<[MemWrite]>,HasParent<"arc::InitialOp">,
+ StateAndValueTypesMatch<"state", "value">]> {
+  let arguments = (ins StateType:$state, TypedAttrInterface:$value);
+  let assemblyFormat = [{
+    $state `=` `(` $value `)` attr-dict `:` type($state)
+  }];
 }
 
 #endif // CIRCT_DIALECT_ARC_ARCOPS_TD

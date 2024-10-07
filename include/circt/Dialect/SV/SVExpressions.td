@@ -154,7 +154,7 @@ def MacroRefExprSEOp : SVOp<"macro.ref.expr.se", [HasCustomSSAName,
   }];
 }
 
-def ConstantXOp : SVOp<"constantX", [Pure, HasCustomSSAName]> {
+def ConstantXOp : SVOp<"constantX", [Pure, HasCustomSSAName, ConstantLike]> {
   let summary = "A constant of value 'x'";
   let description = [{
     This operation produces a constant value of 'x'.  This 'x' follows the
@@ -165,6 +165,7 @@ def ConstantXOp : SVOp<"constantX", [Pure, HasCustomSSAName]> {
   let results = (outs HWValueType:$result);
   let assemblyFormat = " attr-dict `:` qualified(type($result))";
   let hasVerifier = 1;
+  let hasFolder = 1;
   let extraClassDeclaration = [{
     int64_t getWidth() {
       return hw::getBitWidth(getType());
@@ -172,7 +173,7 @@ def ConstantXOp : SVOp<"constantX", [Pure, HasCustomSSAName]> {
   }];
 }
 
-def ConstantZOp : SVOp<"constantZ", [Pure, HasCustomSSAName]> {
+def ConstantZOp : SVOp<"constantZ", [Pure, HasCustomSSAName, ConstantLike]> {
   let summary = "A constant of value 'z'";
   let description = [{
     This operation produces a constant value of 'z'.  This 'z' follows the
@@ -183,6 +184,7 @@ def ConstantZOp : SVOp<"constantZ", [Pure, HasCustomSSAName]> {
   let results = (outs HWValueType:$result);
   let assemblyFormat = " attr-dict `:` qualified(type($result))";
   let hasVerifier = 1;
+  let hasFolder = 1;
   let extraClassDeclaration = [{
     int64_t getWidth() {
       return hw::getBitWidth(getType());

@@ -171,3 +171,14 @@ bool circt::sv::isNameValid(StringRef name, bool caseInsensitiveKeywords) {
   return reservedWords->contains(caseInsensitiveKeywords ? name.lower()
                                                          : name) == 0;
 }
+
+Operation *SVDialect::materializeConstant(OpBuilder &builder, Attribute value,
+                                          Type type, Location loc) {
+
+  if (llvm::isa<ConstantXAttr>(value))
+    return builder.create<ConstantXOp>(loc, type);
+  if (llvm::isa<ConstantZAttr>(value))
+    return builder.create<ConstantZOp>(loc, type);
+
+  return nullptr;
+}

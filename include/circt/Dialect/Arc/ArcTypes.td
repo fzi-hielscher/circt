@@ -55,4 +55,9 @@ def SimModelInstance : ArcTypeDef<"SimModelInstance"> {
   let assemblyFormat = "`<` $model `>`";
 }
 
+def ImpureTokenType : ArcTypeDef<"ImpureToken"> {
+  let mnemonic = "impure_token";
+  let assemblyFormat = "";
+}
+
 #endif // CIRCT_DIALECT_ARC_ARCTYPES_TD
