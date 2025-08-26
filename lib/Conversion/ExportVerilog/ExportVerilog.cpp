@@ -176,7 +176,7 @@ static bool isDuplicatableExpression(Operation *op) {
     if (auto read = dyn_cast<ReadInOutOp>(indexOp)) {
       auto *readSrc = read.getInput().getDefiningOp();
       // A port or wire is ok to duplicate reads.
-      return !readSrc || isa<sv::WireOp, LogicOp>(readSrc);
+      return !readSrc || isa<sv::WireOp, LogicOp, BitOp>(readSrc);
     }
 
     return false;
@@ -1375,7 +1375,7 @@ StringAttr ExportVerilog::inferStructuralNameForTemporary(Value expr) {
 
   } else if (auto *op = expr.getDefiningOp()) {
     // Uses of a wire, register or logic can be done inline.
-    if (isa<sv::WireOp, RegOp, LogicOp>(op)) {
+    if (isa<sv::WireOp, RegOp, LogicOp, BitOp>(op)) {
       StringRef name = getSymOpName(op);
       result = StringAttr::get(expr.getContext(), name);
 
@@ -1576,7 +1576,7 @@ static StringRef getVerilogDeclWord(Operation *op,
   // "automatic" is added to its definition.
   bool stripAutomatic = isa_and_nonnull<FuncOp>(emitter.currentModuleOp);
 
-  if (isa<LogicOp>(op)) {
+  if (isa<LogicOp, BitOp>(op)) {
     // If the logic op is defined in a procedural region, add 'automatic'
     // keyword. If the op has a struct type, 'logic' keyword is already emitted
     // within a struct type definition (e.g. struct packed {logic foo;}). So we
@@ -1584,7 +1584,7 @@ static StringRef getVerilogDeclWord(Operation *op,
     bool hasStruct = hasStructType(op->getResult(0).getType());
     if (isProcedural && !stripAutomatic)
       return hasStruct ? "automatic" : "automatic logic";
-    return hasStruct ? "" : "logic";
+    return hasStruct ? "" : (isa<BitOp>(op) ? "bit" : "logic");
   }
 
   if (!isProcedural)
@@ -4018,6 +4018,7 @@ private:
   LogicalResult visitSV(sv::WireOp op) { return emitDeclaration(op); }
   LogicalResult visitSV(RegOp op) { return emitDeclaration(op); }
   LogicalResult visitSV(LogicOp op) { return emitDeclaration(op); }
+  LogicalResult visitSV(BitOp op) { return emitDeclaration(op); }
   LogicalResult visitSV(LocalParamOp op) { return emitDeclaration(op); }
   template <typename Op>
   LogicalResult
@@ -4030,6 +4031,7 @@ private:
   LogicalResult visitSV(AssignOp op);
   LogicalResult visitSV(BPAssignOp op);
   LogicalResult visitSV(PAssignOp op);
+  LogicalResult visitSV(DelayOp op);
   LogicalResult visitSV(ForceOp op);
   LogicalResult visitSV(ReleaseOp op);
   LogicalResult visitSV(AliasOp op);
@@ -4056,11 +4058,14 @@ private:
   LogicalResult visitSV(AlwaysCombOp op);
   LogicalResult visitSV(AlwaysFFOp op);
   LogicalResult visitSV(InitialOp op);
+  LogicalResult visitSV(ForkJoinOp op);
   LogicalResult visitSV(CaseOp op);
   LogicalResult visitSV(FWriteOp op);
   LogicalResult visitSV(FFlushOp op);
+  LogicalResult visitSV(DisplayOp op);
   LogicalResult visitSV(VerbatimOp op);
   LogicalResult visitSV(MacroRefOp op);
+  LogicalResult visitSV(WaitOp op);
 
   LogicalResult emitSimulationControlTask(Operation *op, PPExtString taskName,
                                           std::optional<unsigned> verbosity);
@@ -4238,6 +4243,26 @@ LogicalResult StmtEmitter::visitSV(PAssignOp op) {
   emitSVAttributes(op);
 
   return emitAssignLike(op, PPExtString("<="));
+}
+
+LogicalResult StmtEmitter::visitSV(DelayOp op) {
+  // Emit SV attributes. See Spec 12.3.
+  emitSVAttributes(op);
+
+  SmallPtrSet<Operation *, 8> ops;
+  ops.insert(op);
+
+  startStatement();
+  ps.addCallback({op, true});
+
+  ps.scopedBox(PP::ibox2, [&]() {
+    ps << PPExtString("#") << PPSaveString(std::to_string(op.getDelayValue()))
+       << PPExtString(";");
+  });
+
+  ps.addCallback({op, false});
+  emitLocationInfoAndNewLine(ops);
+  return success();
 }
 
 LogicalResult StmtEmitter::visitSV(ForceOp op) {
@@ -4598,6 +4623,36 @@ LogicalResult StmtEmitter::visitSV(FWriteOp op) {
   return success();
 }
 
+LogicalResult StmtEmitter::visitSV(DisplayOp op) {
+  if (hasSVAttributes(op))
+    emitError(op, "SV attributes emission is unimplemented for the op");
+
+  startStatement();
+  SmallPtrSet<Operation *, 8> ops;
+  ops.insert(op);
+
+  ps.addCallback({op, true});
+  ps << (op.getNoNewLine() ? "$write(" : "$display(");
+  ps.scopedBox(PP::ibox0, [&]() {
+    ps.writeQuotedEscaped(op.getFormatString());
+
+    // TODO: if any of these breaks, it'd be "nice" to break
+    // after the comma, instead of:
+    // $fwrite(5, "...", a + b,
+    //         longexpr_goes
+    //         + here, c);
+    // (without forcing breaking between all elements, like braced list)
+    for (auto operand : op.getSubstitutions()) {
+      ps << "," << PP::space;
+      emitExpression(operand, ops);
+    }
+    ps << ");";
+  });
+  ps.addCallback({op, false});
+  emitLocationInfoAndNewLine(ops);
+  return success();
+}
+
 LogicalResult StmtEmitter::visitSV(VerbatimOp op) {
   if (hasSVAttributes(op))
     emitError(op, "SV attributes emission is unimplemented for the op");
@@ -4665,6 +4720,24 @@ LogicalResult StmtEmitter::visitSV(MacroRefOp op) {
     ps << ")";
   }
   ps << PP::end;
+  emitLocationInfoAndNewLine(ops);
+  return success();
+}
+
+LogicalResult StmtEmitter::visitSV(WaitOp op) {
+  if (hasSVAttributes(op))
+    emitError(op, "SV attributes emission is unimplemented for the op");
+
+  startStatement();
+  SmallPtrSet<Operation *, 8> ops;
+  ops.insert(op);
+  ps.addCallback({op, true});
+  ps << "wait"
+     << "(";
+  ps.scopedBox(PP::ibox0, [&]() { emitExpression(op.getCond(), ops); });
+  ps << ")"
+     << ";";
+  ps.addCallback({op, false});
   emitLocationInfoAndNewLine(ops);
   return success();
 }
@@ -5376,6 +5449,33 @@ LogicalResult StmtEmitter::visitSV(InitialOp op) {
   return success();
 }
 
+LogicalResult StmtEmitter::visitSV(ForkJoinOp op) {
+  emitSVAttributes(op);
+  SmallPtrSet<Operation *, 8> ops, emptyOps;
+  ops.insert(op);
+  startStatement();
+  ps.addCallback({op, true});
+  ps << "fork";
+  emitLocationInfoAndNewLine(ops);
+  ps.scopedBox(PP::bbox2, [&]() {
+    for (auto &region : op.getRegions()) {
+      auto *block = &region.front();
+      auto count = countStatements(*block);
+      if (count == BlockStatementCount::One)
+        state.pendingNewline = false;
+      else
+        startStatement();
+      emitBlockAsStatement(block, emptyOps);
+    }
+  });
+
+  startStatement();
+  ps << "join";
+  ps.addCallback({op, false});
+  emitLocationInfoAndNewLine(ops);
+  return success();
+}
+
 LogicalResult StmtEmitter::visitSV(CaseOp op) {
   emitSVAttributes(op);
   SmallPtrSet<Operation *, 8> ops, emptyOps;
@@ -5841,13 +5941,13 @@ isExpressionEmittedInlineIntoProceduralDeclaration(Operation *op,
 
       // Reject struct_field_inout/array_index_inout for now because it's
       // necessary to consider aliasing inout operations.
-      if (!isa<RegOp, LogicOp>(defOp))
+      if (!isa<RegOp, LogicOp, BitOp>(defOp))
         return false;
 
       // It's safe to inline if all users are read op, passign or assign.
       // If the op is a logic op whose single assignment is inlined into
       // declaration, we can inline the read.
-      if (isa<LogicOp>(defOp) &&
+      if (isa<LogicOp, BitOp>(defOp) &&
           stmtEmitter.emitter.expressionsEmittedIntoDecl.count(defOp))
         continue;
 
@@ -6039,7 +6139,8 @@ LogicalResult StmtEmitter::emitDeclaration(Operation *op) {
     // Try inlining a blocking assignment to logic op declaration.
     // FIXME: Unpacked array is not inlined since several tools doesn't support
     // that syntax. See Issue 6363.
-    if (isa<LogicOp>(op) && op->getParentOp()->hasTrait<ProceduralRegion>() &&
+    if (isa<LogicOp, BitOp>(op) &&
+        op->getParentOp()->hasTrait<ProceduralRegion>() &&
         !hasLeadingUnpackedType(op->getResult(0).getType())) {
       // Get a single assignment which might be possible to inline.
       if (auto singleAssign = getSingleAssignAndCheckUsers<BPAssignOp>(op)) {

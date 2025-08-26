@@ -44,11 +44,13 @@ using namespace mlir;
 using llvm::SmallDenseSet;
 
 namespace {
-enum class Phase { Initial, Old, New, Final };
+enum class Phase { Preinitial, Initial, Old, New, Final };
 
 template <class OS>
 OS &operator<<(OS &os, Phase phase) {
   switch (phase) {
+  case Phase::Preinitial:
+    return os << "preinitial";
   case Phase::Initial:
     return os << "initial";
   case Phase::Old:
@@ -102,6 +104,7 @@ struct OpLowering {
   LogicalResult lower(hw::OutputOp op);
   LogicalResult lower(seq::InitialOp op);
   LogicalResult lower(llhd::FinalOp op);
+  LogicalResult lower(sim::TriggeredOp op);
 
   scf::IfOp createIfClockOp(Value clock);
 
@@ -113,6 +116,7 @@ struct OpLowering {
   Value lowerValue(InstanceOp op, OpResult result, Phase phase);
   Value lowerValue(StateOp op, OpResult result, Phase phase);
   Value lowerValue(sim::DPICallOp op, OpResult result, Phase phase);
+  Value lowerValue(sim::TriggeredOp op, OpResult result, Phase phase);
   Value lowerValue(MemoryReadPortOp op, OpResult result, Phase phase);
   Value lowerValue(seq::InitialOp op, OpResult result, Phase phase);
   Value lowerValue(seq::FromImmutableOp op, OpResult result, Phase phase);
@@ -129,6 +133,8 @@ struct ModuleLowering {
   OpBuilder builder;
   /// The builder for state allocation ops.
   OpBuilder allocBuilder;
+  /// The builder for the preinitial phase.
+  OpBuilder preinitialBuilder;
   /// The builder for the initial phase.
   OpBuilder initialBuilder;
   /// The builder for the final phase.
@@ -170,7 +176,8 @@ struct ModuleLowering {
 
   ModuleLowering(HWModuleOp moduleOp)
       : moduleOp(moduleOp), builder(moduleOp), allocBuilder(moduleOp),
-        initialBuilder(moduleOp), finalBuilder(moduleOp) {}
+        preinitialBuilder(moduleOp), initialBuilder(moduleOp),
+        finalBuilder(moduleOp) {}
   LogicalResult run();
   LogicalResult lowerOp(Operation *op);
   Value getAllocatedState(OpResult result);
@@ -201,7 +208,13 @@ LogicalResult ModuleLowering::run() {
   // Create the `arc.initial` op to contain the ops for the initialization
   // phase.
   auto initialOp = InitialOp::create(builder, moduleOp.getLoc());
-  initialBuilder.setInsertionPointToStart(&initialOp.getBody().emplaceBlock());
+  preinitialBuilder.setInsertionPointToStart(
+      &initialOp.getBody().emplaceBlock());
+  auto delimiter = preinitialBuilder.create<hw::ConstantOp>(moduleOp.getLoc(),
+                                                            APInt(0, 0, false));
+
+  preinitialBuilder.setInsertionPoint(delimiter);
+  initialBuilder.setInsertionPointAfter(delimiter);
 
   // Create the `arc.final` op to contain the ops for the finalization phase.
   auto finalOp = FinalOp::create(builder, moduleOp.getLoc());
@@ -251,6 +264,12 @@ LogicalResult ModuleLowering::lowerOp(Operation *op) {
     phases = {Phase::Final};
   if (isa<StateOp>(op))
     phases = {Phase::Initial, Phase::New};
+  if (auto trigOp = dyn_cast<sim::TriggeredOp>(op)) {
+    if (isa<sim::InitTriggerType>(trigOp.getTrigger().getType()))
+      phases = {Phase::Initial};
+    else
+      phases = {Phase::Preinitial, Phase::New};
+  }
 
   for (auto phase : phases) {
     if (loweredOps.contains({op, phase}))
@@ -373,6 +392,8 @@ Value ModuleLowering::detectPosedge(Value clock) {
 /// Get the builder appropriate for the given phase.
 OpBuilder &ModuleLowering::getBuilder(Phase phase) {
   switch (phase) {
+  case Phase::Preinitial:
+    return preinitialBuilder;
   case Phase::Initial:
     return initialBuilder;
   case Phase::Old:
@@ -405,7 +426,89 @@ static scf::IfOp createOrReuseIf(OpBuilder &builder, Value condition,
     if (auto ifOp = dyn_cast<scf::IfOp>(*std::prev(ip)))
       if (ifOp.getCondition() == condition)
         return ifOp;
-  return scf::IfOp::create(builder, condition.getLoc(), condition, withElse);
+  return builder.create<scf::IfOp>(condition.getLoc(), condition, withElse);
+}
+
+static Operation* findTriggerRoot(Value trigger, SmallVectorImpl<Value> &conditions) {
+  assert(isa<sim::EdgeTriggerType>(trigger.getType()) || isa<sim::InitTriggerType>(trigger.getType()));
+
+  SmallPtrSet<Operation*, 4> seen;
+
+  Operation* defOp;
+  while (defOp = trigger.getDefiningOp(), !!defOp && !(isa<sim::OnEdgeOp>(defOp) || isa<sim::OnInitOp>(defOp))) {
+    if (!seen.insert(defOp).second)
+      return {};
+    if (auto seqOp = dyn_cast<sim::TriggerSequenceOp>(defOp)) {
+      trigger = seqOp.getParent();
+    } else if (auto gateOp = dyn_cast<sim::TriggerGateOp>(defOp)) {
+      conditions.push_back(gateOp.getEnable());
+      trigger = gateOp.getInput();
+    } else {
+      assert(false);
+      return {};
+    }
+  }
+
+  return defOp;
+}
+
+static Value findDominatingTrigger(Value trigger) {
+  assert(isa<sim::EdgeTriggerType>(trigger.getType()) || isa<sim::InitTriggerType>(trigger.getType()));
+  SmallPtrSet<Operation*, 4> seen;
+  Operation* defOp;
+  while (defOp = trigger.getDefiningOp(), !!defOp && !(isa<sim::OnEdgeOp>(defOp) || isa<sim::OnInitOp>(defOp))) {
+    if (!seen.insert(defOp).second)
+      return {};
+    if (auto seqOp = dyn_cast<sim::TriggerSequenceOp>(defOp)) {
+        auto resultIdx = cast<OpResult>(trigger).getResultNumber();
+        if (resultIdx > 0)
+          return seqOp.getResult(resultIdx - 1);
+      trigger = seqOp.getParent();
+    } else if (auto gateOp = dyn_cast<sim::TriggerGateOp>(defOp)) {
+      trigger = gateOp.getInput();
+    } else {
+      assert(false);
+      return {};
+    }
+  }
+  return {};
+}
+
+static SmallVector<sim::TriggeredOp> collectTriggeredOps(Value treeNode) {
+  SmallVector<sim::TriggeredOp> ops;
+
+  SmallVector<std::pair<Operation*, unsigned>> dfsStack;
+  unsigned nodeIdx;
+  if (isa<sim::TriggerSequenceOp>(treeNode.getDefiningOp()))
+    nodeIdx = cast<OpResult>(treeNode).getResultNumber();
+
+  dfsStack.push_back({treeNode.getDefiningOp(), nodeIdx});
+
+  while (dfsStack.size() > 1 || dfsStack.front().second == nodeIdx) {
+    auto &top = dfsStack.back();
+    auto currentOp = top.first;
+    if (top.second == currentOp->getNumResults()) {
+      dfsStack.pop_back();
+      continue;;
+    }
+    auto triggerValue = currentOp->getResult(top.second);
+
+    top.second++;
+
+    for (auto triggerUser: triggerValue.getUsers()) {
+      if (auto triggeredOp = dyn_cast<sim::TriggeredOp>(triggerUser)) {
+        ops.push_back(triggeredOp);
+      } else if (auto gateOp = dyn_cast<sim::TriggerGateOp>(triggerUser)) {
+        dfsStack.push_back({gateOp, 0});
+      } else if (auto sequenceOp = dyn_cast<sim::TriggerSequenceOp>(triggerUser)) {
+        dfsStack.push_back({sequenceOp, 0});
+      } else {
+        triggerUser->emitOpError("oops.");
+        assert(false && "Unknown trigger user");
+      }
+    }
+  }
+  return ops;
 }
 
 /// This function is called from the lowering worklist in order to perform a
@@ -416,7 +519,7 @@ LogicalResult OpLowering::lower() {
   return TypeSwitch<Operation *, LogicalResult>(op)
       // Operations with special lowering.
       .Case<StateOp, sim::DPICallOp, MemoryOp, TapOp, InstanceOp, hw::OutputOp,
-            seq::InitialOp, llhd::FinalOp>([&](auto op) { return lower(op); })
+            seq::InitialOp, llhd::FinalOp, sim::TriggeredOp>([&](auto op) { return lower(op); })
 
       // Operations that should be skipped entirely and never land on the
       // worklist to be lowered.
@@ -424,6 +527,7 @@ LogicalResult OpLowering::lower() {
         assert(false && "ports must be lowered by memory op");
         return failure();
       })
+      .Case<sim::OnEdgeOp, sim::OnInitOp, sim::TriggerGateOp, sim::TriggerSequenceOp>([](auto) { return success(); })
 
       // All other ops are simply cloned into the lowered model.
       .Default([&](auto) { return lowerDefault(); });
@@ -968,6 +1072,145 @@ LogicalResult OpLowering::lower(llhd::FinalOp op) {
   return success();
 }
 
+
+LogicalResult OpLowering::lower(sim::TriggeredOp op) {
+  assert(phase != Phase::Old);
+  assert(phase != Phase::New ||
+         isa<sim::EdgeTriggerType>(op.getTrigger().getType()));
+  assert(phase != Phase::Initial ||
+         isa<sim::InitTriggerType>(op.getTrigger().getType()));
+
+  if (initial && phase == Phase::Preinitial)
+    return success();
+
+  SmallVector<Value> conditions;
+  auto root = findTriggerRoot(op.getTrigger(), conditions);
+
+  if (!root) {
+    op.emitError("Unable to find root of trigger.");
+    return failure();
+  }
+
+  if (initial) {
+    if (phase == Phase::New) {
+      lowerValue(cast<sim::OnEdgeOp>(root).getClock(), Phase::New);
+      for (auto input : op.getInputs())
+        lowerValue(input, Phase::Old);
+      for (auto cond : conditions)
+        lowerValue(cond, Phase::Old);
+    } else {
+      assert(phase == Phase::Initial);
+      for (auto input : op.getInputs())
+        lowerValue(input, Phase::Preinitial);
+      for (auto cond : conditions)
+        lowerValue(cond, Phase::Preinitial);
+    }
+
+    Value domTrigger = op.getTrigger();
+    while((domTrigger = findDominatingTrigger(domTrigger))) {
+      auto preds = collectTriggeredOps(domTrigger);
+      for (auto pred : preds) {
+        addPending(pred, phase);
+        if (phase == Phase::New)
+          addPending(pred, Phase::Preinitial);
+      }
+      if (!preds.empty())
+        break;
+    }
+
+    return success();
+  }
+
+  SmallVector<Value> states;
+  for (auto result : op.getResults()) {
+    auto state = module.getAllocatedState(result);
+    if (!state)
+      return failure();
+    states.push_back(state);
+  }
+
+  if (phase == Phase::Preinitial) {
+    if (op.getNumResults() == 0)
+      return success();
+    auto hwDialect = op.getContext()->getLoadedDialect<hw::HWDialect>();
+    for (auto [res, state, attr] :
+         llvm::zip(op.getResults(), states, *op.getTieoffs())) {
+      auto stateType = cast<StateType>(state.getType()).getType();
+      Value value = hwDialect
+                        ->materializeConstant(module.preinitialBuilder, attr,
+                                              res.getType(), op.getLoc())
+                        ->getResult(0);
+      if (res.getType() != stateType)
+        value = module.preinitialBuilder.create<BitcastOp>(op.getLoc(),
+                                                           stateType, value);
+      module.preinitialBuilder.create<StateWriteOp>(op.getLoc(), state, value,
+                                                    Value{});
+    }
+    return success();
+  }
+
+  auto prevPhase = phase == Phase::Initial ? Phase::Preinitial : Phase::Old;
+
+  auto& builder = module.getBuilder(phase);
+  OpBuilder::InsertionGuard guard(builder);
+
+  scf::IfOp ifClockOp;
+  if (auto edgeOp = dyn_cast<sim::OnEdgeOp>(root)) {
+    ifClockOp = createIfClockOp(edgeOp.getClock());
+    if (!ifClockOp)
+      return failure();
+    builder.setInsertionPoint(ifClockOp.thenYield());
+  }
+
+  SmallVector<Value> loweredConds;
+  loweredConds.reserve(conditions.size());
+  for (auto cond: conditions)
+    loweredConds.push_back(lowerValue(cond, prevPhase));
+
+  if (!loweredConds.empty()) {
+    Value loweredEnable;
+    if (conditions.size() == 1)
+      loweredEnable = loweredConds.front();
+    else
+      loweredEnable =
+          builder.createOrFold<comb::AndOp>(op.getLoc(), loweredConds, true);
+    auto ifEnableOp = createOrReuseIf(builder, loweredEnable, false);
+    builder.setInsertionPoint(ifEnableOp.thenYield());
+  }
+
+  SmallVector<Value> loweredInputs;
+  for (auto input : op.getInputs()) {
+    auto lowered = lowerValue(input, prevPhase);
+    if (!lowered)
+      return failure();
+    loweredInputs.push_back(lowered);
+  }
+
+  IRRewriter rewriter(module.builder);
+  rewriter.inlineBlockBefore(&op.getBodyRegion().front(),
+                             builder.getInsertionBlock(),
+                             builder.getInsertionPoint(), loweredInputs);
+  auto yield = cast<sim::YieldSeqOp>(*std::prev(builder.getInsertionPoint()));
+  SmallVector<Value> loweredResults(yield.getInputs());
+  yield.erase(); yield = {};
+
+  for (auto [state, value] : llvm::zip(states, loweredResults))
+    builder.create<StateWriteOp>(value.getLoc(), state, value, Value{});
+
+  // Since we just wrote the new state value to storage, insert read ops just
+  // before the if op that keep the old value around for any later ops that
+  // still need it.
+  if (phase == Phase::New) {
+    builder.setInsertionPoint(ifClockOp);
+    for (auto [state, result] : llvm::zip(states, op.getResults())) {
+      auto oldValue =
+          module.builder.create<StateReadOp>(result.getLoc(), state);
+      module.loweredValues[{result, prevPhase}] = oldValue;
+    }
+  }
+  return success();
+}
+
 /// Create the operations necessary to detect a posedge on the given clock,
 /// potentially reusing a previous posedge detection, and create an `scf.if`
 /// operation for that posedge. This also tries to reuse an `scf.if` operation
@@ -1016,6 +1259,8 @@ Value OpLowering::lowerValue(Value value, Phase phase) {
     return lowerValue(stateOp, result, phase);
   if (auto dpiOp = dyn_cast<sim::DPICallOp>(op); dpiOp && dpiOp.getClock())
     return lowerValue(dpiOp, result, phase);
+  if (auto triggeredOp = dyn_cast<sim::TriggeredOp>(op))
+    return lowerValue(triggeredOp, result, phase);
   if (auto readOp = dyn_cast<MemoryReadPortOp>(op))
     return lowerValue(readOp, result, phase);
   if (auto initialOp = dyn_cast<seq::InitialOp>(op))
@@ -1056,6 +1301,13 @@ Value OpLowering::lowerValue(StateOp op, OpResult result, Phase phase) {
     return {};
   }
 
+  if (phase == Phase::Preinitial) {
+    // TODO
+    assert(isa<IntegerType>(result.getType()));
+    return module.getBuilder(phase).createOrFold<ConstantOp>(
+        result.getLoc(), IntegerAttr::get(result.getType(), 0));
+  }
+
   // If we want to read the old value, no writes must have been lowered yet.
   if (phase == Phase::Old)
     assert(!module.loweredOps.contains({op, Phase::New}) &&
@@ -1078,6 +1330,13 @@ Value OpLowering::lowerValue(sim::DPICallOp op, OpResult result, Phase phase) {
     return {};
   }
 
+  if (phase == Phase::Preinitial) {
+    // TODO
+    assert(isa<IntegerType>(result.getType()));
+    return module.getBuilder(phase).createOrFold<ConstantOp>(
+        result.getLoc(), IntegerAttr::get(result.getType(), 0));
+  }
+
   // If we want to read the old value, no writes must have been lowered yet.
   if (phase == Phase::Old)
     assert(!module.loweredOps.contains({op, Phase::New}) &&
@@ -1085,6 +1344,36 @@ Value OpLowering::lowerValue(sim::DPICallOp op, OpResult result, Phase phase) {
 
   auto state = module.getAllocatedState(result);
   return StateReadOp::create(module.getBuilder(phase), result.getLoc(), state);
+}
+
+Value OpLowering::lowerValue(sim::TriggeredOp op, OpResult result, Phase phase) {
+  bool isInitTriggered = isa<sim::InitTriggerType>(op.getTrigger().getType());
+
+  if (initial) {
+    if (phase == Phase::New || phase == Phase::Initial)
+      addPending(op, isInitTriggered ? Phase::Initial : Phase::New);
+    return {};
+  }
+
+  if (phase == Phase::Preinitial ||
+      (!isInitTriggered && phase == Phase::Initial)) {
+    auto hwDialect = op.getContext()->getLoadedDialect<hw::HWDialect>();
+    Value tieOff =
+        hwDialect
+            ->materializeConstant(module.getBuilder(phase),
+                                  (*op.getTieoffs())[result.getResultNumber()],
+                                  result.getType(), op.getLoc())
+            ->getResult(0);
+    return tieOff;
+  }
+
+  // If we want to read the old value, no writes must have been lowered yet.
+  if (!isInitTriggered && phase == Phase::Old)
+    assert(!module.loweredOps.contains({op, Phase::New}) &&
+           "need old value but new value already written");
+
+  auto state = module.getAllocatedState(result);
+  return module.getBuilder(phase).create<StateReadOp>(result.getLoc(), state);
 }
 
 /// Handle uses of a memory read operation. This creates an `arc.memory_read` op

@@ -27,7 +27,8 @@ static bool isArcBreakingOp(Operation *op) {
   return op->hasTrait<OpTrait::ConstantLike>() ||
          isa<hw::InstanceOp, seq::CompRegOp, MemoryOp, MemoryReadPortOp,
              ClockedOpInterface, seq::InitialOp, seq::ClockGateOp,
-             sim::DPICallOp>(op) ||
+             sim::DPICallOp, sim::TriggeredOp, sim::TriggerGateOp,
+             sim::OnEdgeOp, sim::OnInitOp>(op) ||
          op->getNumResults() > 1;
 }
 
@@ -102,7 +103,7 @@ LogicalResult Converter::runOnModule(HWModuleOp module) {
   for (Operation &op : *module.getBodyBlock()) {
     if (isa<seq::InitialOp>(&op))
       continue;
-    if (op.getNumRegions() > 0)
+    if (op.getNumRegions() > 0 && !isa<sim::TriggeredOp>(op))
       return op.emitOpError("has regions; not supported by ConvertToArcs");
     if (!isArcBreakingOp(&op) && !isa<hw::OutputOp>(&op))
       continue;

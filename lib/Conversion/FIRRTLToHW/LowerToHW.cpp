@@ -1600,6 +1600,7 @@ struct FIRRTLLowering : public FIRRTLVisitor<FIRRTLLowering, LogicalResult> {
   Value getPossiblyInoutLoweredValue(Value value);
   Value getLoweredValue(Value value);
   Value getLoweredNonClockValue(Value value);
+  Value getPosedgeTriggerForClock(Value value);
   Value getLoweredAndExtendedValue(Value value, Type destType);
   Value getLoweredAndExtOrTruncValue(Value value, Type destType);
   LogicalResult setLowering(Value orig, Value result);
@@ -1927,6 +1928,8 @@ private:
   /// via a deduped `seq.from_clock` op.
   DenseMap<Value, Value> fromClockMapping;
 
+  DenseMap<Value, Value> clockToTriggerMapping;
+
   /// This keeps track of constants that we have created so we can reuse them.
   /// This is populated by the getOrCreateIntConstant method.
   DenseMap<Attribute, Value> hwConstantMap;
@@ -1936,6 +1939,9 @@ private:
   /// This is populated by the getOrCreateXConstant method.
   DenseMap<unsigned, Value> hwConstantXMap;
   DenseMap<Type, Value> hwConstantZMap;
+
+  /// Cache for printf stirng literal tokens.
+  // llvm::StringMap<Value> printLiteralMap;
 
   /// We auto-unique "ReadInOut" ops from wires and regs, enabling
   /// optimizations and CSEs of the read values to be more obvious.  This
@@ -2317,6 +2323,20 @@ Value FIRRTLLowering::getLoweredNonClockValue(Value value) {
     return getNonClockValue(result);
 
   return result;
+}
+
+Value FIRRTLLowering::getPosedgeTriggerForClock(Value value) {
+  auto &cached = clockToTriggerMapping[value];
+  if (cached)
+    return cached;
+
+  auto loweredClock = getLoweredValue(value);
+  if (!isa<seq::ClockType>(loweredClock.getType()))
+    loweredClock = builder.createOrFold<seq::ToClockOp>(loweredClock);
+
+  cached = builder.createOrFold<sim::OnEdgeOp>(loweredClock,
+                                               hw::EventControl::AtPosEdge);
+  return cached;
 }
 
 /// Return the lowered aggregate value whose type is converted into
