@@ -26,7 +26,7 @@ namespace circt {
 namespace hw {
 
 struct ModulePort {
-  enum Direction { Input, Output, InOut };
+  enum Direction : uint8_t { Input, Output, InOut };
   mlir::StringAttr name;
   mlir::Type type;
   Direction dir;
