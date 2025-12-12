@@ -339,12 +339,99 @@ struct ModelInfoMap {
   mlir::FlatSymbolRefAttr finalFnSymbol;
 };
 
+struct RuntimeLib {
+  explicit RuntimeLib(mlir::ModuleOp &moduleOp, bool doEmitCalls)
+      : doEmitCalls(doEmitCalls), builder(moduleOp.getLoc(), moduleOp) {
+    auto ptrTy = LLVM::LLVMPointerType::get(builder.getContext());
+    auto voidTy = LLVM::LLVMVoidType::get(builder.getContext());
+    builder.setInsertionPointToStart(moduleOp.getBody());
+    if (doEmitCalls) {
+      allocInstanceFn = LLVM::LLVMFuncOp::create(
+          builder, "arcRuntimeIR_allocInstance",
+          LLVM::LLVMFunctionType::get(ptrTy, {ptrTy, ptrTy}));
+      deleteInstanceFn = LLVM::LLVMFuncOp::create(
+          builder, "arcRuntimeIR_deleteInstance",
+          LLVM::LLVMFunctionType::get(voidTy, {ptrTy}));
+
+      argStringPtrGlobal = LLVM::GlobalOp::create(
+          builder, ptrTy, false, LLVM::linkage::Linkage::External,
+          arcJitRuntimeArgsStrSymName, Attribute());
+    }
+    modelInfoStructType = LLVM::LLVMStructType::getLiteral(
+        builder.getContext(),
+        {builder.getI64Type(), builder.getI64Type(), ptrTy});
+  }
+
+  void addModel(StringRef modelName, const ModelInfoMap &info) {
+    OpBuilder::InsertionGuard g(builder);
+
+    // Construct the Model Name String
+    SmallVector<char, 16> modNameArray(modelName.begin(), modelName.end());
+    modNameArray.push_back('\0');
+    auto nameGlobalType =
+        LLVM::LLVMArrayType::get(builder.getI8Type(), modNameArray.size());
+    SmallString<16> globalSymName{"_arc_mod_name_"};
+    globalSymName.append(modelName);
+    auto nameGlobal = LLVM::GlobalOp::create(
+        builder, nameGlobalType, /*isConstant=*/true, LLVM::Linkage::Internal,
+        /*name=*/globalSymName, builder.getStringAttr(modNameArray),
+        /*alignment=*/0);
+
+    // Construct the Model Info Struct
+    globalSymName.clear();
+    globalSymName.append("model_info_");
+    globalSymName.append(modelName);
+
+    auto modInfoGlobalOp =
+        LLVM::GlobalOp::create(builder, modelInfoStructType,
+                               /*isConstant=*/false, LLVM::Linkage::External,
+                               globalSymName, Attribute{});
+
+    Region &initRegion = modInfoGlobalOp.getInitializerRegion();
+    Block *initBlock = builder.createBlock(&initRegion);
+    builder.setInsertionPointToStart(initBlock);
+
+    auto apiVersionCst = LLVM::ConstantOp::create(
+        builder, builder.getI64IntegerAttr(apiVersion));
+    auto numStateBytesCst = LLVM::ConstantOp::create(
+        builder, builder.getI64IntegerAttr(info.numStateBytes));
+    auto nameAddr = LLVM::AddressOfOp::create(builder, nameGlobal);
+
+    Value initStruct = LLVM::PoisonOp::create(builder, modelInfoStructType);
+    initStruct = LLVM::InsertValueOp::create(builder, initStruct, apiVersionCst,
+                                             ArrayRef<int64_t>{0});
+    initStruct = LLVM::InsertValueOp::create(
+        builder, initStruct, numStateBytesCst, ArrayRef<int64_t>{1});
+    initStruct = LLVM::InsertValueOp::create(builder, initStruct, nameAddr,
+                                             ArrayRef<int64_t>{2});
+    LLVM::ReturnOp::create(builder, initStruct);
+
+    infoStructMap.insert({modelName, modInfoGlobalOp});
+  }
+
+  static const uint32_t apiVersion = 0;
+  const bool doEmitCalls;
+
+  LLVM::LLVMFuncOp allocInstanceFn;
+  LLVM::LLVMFuncOp deleteInstanceFn;
+
+  LLVM::LLVMStructType modelInfoStructType;
+
+  LLVM::GlobalOp argStringPtrGlobal;
+
+  llvm::DenseMap<StringRef, LLVM::GlobalOp> infoStructMap;
+
+private:
+  ImplicitLocOpBuilder builder;
+};
+
 template <typename OpTy>
 struct ModelAwarePattern : public OpConversionPattern<OpTy> {
   ModelAwarePattern(const TypeConverter &typeConverter, MLIRContext *context,
-                    llvm::DenseMap<StringRef, ModelInfoMap> &modelInfo)
-      : OpConversionPattern<OpTy>(typeConverter, context),
-        modelInfo(modelInfo) {}
+                    llvm::DenseMap<StringRef, ModelInfoMap> &modelInfo,
+                    RuntimeLib &runtimeLib)
+      : OpConversionPattern<OpTy>(typeConverter, context), modelInfo(modelInfo),
+        runtimeLib(runtimeLib) {}
 
 protected:
   Value createPtrToPortState(ConversionPatternRewriter &rewriter, Location loc,
@@ -356,6 +443,7 @@ protected:
   }
 
   llvm::DenseMap<StringRef, ModelInfoMap> &modelInfo;
+  RuntimeLib &runtimeLib;
 };
 
 /// Lowers SimInstantiateOp to a malloc and memset call. This pattern will
@@ -372,6 +460,9 @@ struct SimInstantiateOpLowering
             .getModel()
             .getValue());
     ModelInfoMap &model = modelIt->second;
+    LLVM::GlobalOp infoStruct;
+    infoStruct = runtimeLib.infoStructMap[modelIt->first];
+    assert(infoStruct && "Missing Model info struct");
 
     ModuleOp moduleOp = op->getParentOfType<ModuleOp>();
     if (!moduleOp)
@@ -382,27 +473,37 @@ struct SimInstantiateOpLowering
     // FIXME: like the rest of MLIR, this assumes sizeof(intptr_t) ==
     // sizeof(size_t) on the target architecture.
     Type convertedIndex = typeConverter->convertType(rewriter.getIndexType());
-
-    FailureOr<LLVM::LLVMFuncOp> mallocFunc =
-        LLVM::lookupOrCreateMallocFn(rewriter, moduleOp, convertedIndex);
-    if (failed(mallocFunc))
-      return mallocFunc;
-
-    FailureOr<LLVM::LLVMFuncOp> freeFunc =
-        LLVM::lookupOrCreateFreeFn(rewriter, moduleOp);
-    if (failed(freeFunc))
-      return freeFunc;
-
     Location loc = op.getLoc();
-    Value numStateBytes = LLVM::ConstantOp::create(
-        rewriter, loc, convertedIndex, model.numStateBytes);
-    Value allocated = LLVM::CallOp::create(rewriter, loc, mallocFunc.value(),
-                                           ValueRange{numStateBytes})
-                          .getResult();
-    Value zero =
-        LLVM::ConstantOp::create(rewriter, loc, rewriter.getI8Type(), 0);
-    LLVM::MemsetOp::create(rewriter, loc, allocated, zero, numStateBytes,
-                           false);
+
+    Value allocated;
+    if (!runtimeLib.doEmitCalls) {
+      FailureOr<LLVM::LLVMFuncOp> mallocFunc =
+          LLVM::lookupOrCreateMallocFn(rewriter, moduleOp, convertedIndex);
+      if (failed(mallocFunc))
+        return mallocFunc;
+
+      Value numStateBytes = LLVM::ConstantOp::create(
+          rewriter, loc, convertedIndex, model.numStateBytes);
+      allocated = LLVM::CallOp::create(rewriter, loc, mallocFunc.value(),
+                                       ValueRange{numStateBytes})
+                      .getResult();
+      Value zero =
+          LLVM::ConstantOp::create(rewriter, loc, rewriter.getI8Type(), 0);
+      LLVM::MemsetOp::create(rewriter, loc, allocated, zero, numStateBytes,
+                             false);
+    } else {
+      auto ptrTy = LLVM::LLVMPointerType::get(rewriter.getContext());
+      auto infoStructAddr =
+          LLVM::AddressOfOp::create(rewriter, loc, infoStruct);
+      auto argsPtrPtr = LLVM::AddressOfOp::create(
+          rewriter, loc, runtimeLib.argStringPtrGlobal);
+      auto argsPtr =
+          LLVM::LoadOp::create(rewriter, loc, ptrTy, argsPtrPtr.getResult());
+      allocated =
+          LLVM::CallOp::create(rewriter, loc, runtimeLib.allocInstanceFn,
+                               {infoStructAddr, argsPtr})
+              .getResult();
+    }
 
     // Call the model's 'initial' function if present.
     if (model.initialFnSymbol) {
@@ -426,10 +527,20 @@ struct SimInstantiateOpLowering
                            ValueRange{allocated});
     }
 
-    LLVM::CallOp::create(rewriter, loc, freeFunc.value(),
-                         ValueRange{allocated});
-    rewriter.eraseOp(op);
+    if (!runtimeLib.doEmitCalls) {
+      FailureOr<LLVM::LLVMFuncOp> freeFunc =
+          LLVM::lookupOrCreateFreeFn(rewriter, moduleOp);
+      if (failed(freeFunc))
+        return freeFunc;
 
+      LLVM::CallOp::create(rewriter, loc, freeFunc.value(),
+                           ValueRange{allocated});
+    } else {
+      LLVM::CallOp::create(rewriter, loc, runtimeLib.deleteInstanceFn,
+                           {allocated});
+    }
+
+    rewriter.eraseOp(op);
     return success();
   }
 };
@@ -686,6 +797,8 @@ static LogicalResult convert(arc::ExecuteOp op, arc::ExecuteOp::Adaptor adaptor,
 namespace {
 struct LowerArcToLLVMPass
     : public circt::impl::LowerArcToLLVMBase<LowerArcToLLVMPass> {
+  using circt::impl::LowerArcToLLVMBase<LowerArcToLLVMPass>::LowerArcToLLVMBase;
+
   void runOnOperation() override;
 };
 } // namespace
@@ -798,6 +911,11 @@ void LowerArcToLLVMPass::runOnOperation() {
   // clang-format on
   patterns.add<ExecuteOp>(convert);
 
+  mlir::ModuleOp moduleOp = getOperation();
+  ImplicitLocOpBuilder runtimeBuilder(moduleOp.getLoc(), moduleOp);
+  runtimeBuilder.setInsertionPointToStart(moduleOp.getBody());
+  auto runtimeLib = RuntimeLib(moduleOp, !noRuntimeLib);
+
   SmallVector<ModelInfo> models;
   if (failed(collectModels(getOperation(), models))) {
     signalPassFailure();
@@ -809,15 +927,15 @@ void LowerArcToLLVMPass::runOnOperation() {
     llvm::DenseMap<StringRef, StateInfo> states(modelInfo.states.size());
     for (StateInfo &stateInfo : modelInfo.states)
       states.insert({stateInfo.name, stateInfo});
-    modelMap.insert(
-        {modelInfo.name,
-         ModelInfoMap{modelInfo.numStateBytes, std::move(states),
-                      modelInfo.initialFnSym, modelInfo.finalFnSym}});
+    auto infoMap = ModelInfoMap{modelInfo.numStateBytes, std::move(states),
+                                modelInfo.initialFnSym, modelInfo.finalFnSym};
+    modelMap.insert({modelInfo.name, infoMap});
+    runtimeLib.addModel(modelInfo.name, infoMap);
   }
 
   patterns.add<SimInstantiateOpLowering, SimSetInputOpLowering,
                SimGetPortOpLowering, SimStepOpLowering>(
-      converter, &getContext(), modelMap);
+      converter, &getContext(), modelMap, runtimeLib);
 
   // Apply the conversion.
   ConversionConfig config;
@@ -825,8 +943,4 @@ void LowerArcToLLVMPass::runOnOperation() {
   if (failed(applyFullConversion(getOperation(), target, std::move(patterns),
                                  config)))
     signalPassFailure();
-}
-
-std::unique_ptr<OperationPass<ModuleOp>> circt::createLowerArcToLLVMPass() {
-  return std::make_unique<LowerArcToLLVMPass>();
 }

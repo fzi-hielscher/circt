@@ -1,4 +1,4 @@
-// RUN: arcilator %s --emit-mlir | FileCheck %s
+// RUN: arcilator %s --emit-mlir --jit-no-runtime | FileCheck %s
 
 module {
   hw.module @id(in %i: i8, in %j: i8, out o: i8) {

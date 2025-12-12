@@ -10,13 +10,17 @@
 #define CIRCT_CONVERSION_ARCTOLLVM_H
 
 #include "circt/Support/LLVM.h"
+#include "llvm/ADT/StringRef.h"
 #include <memory>
 
 namespace circt {
+
+static constexpr StringLiteral arcJitRuntimeArgsStrSymName =
+    "arc_jit_runtimeArgsString";
+
 #define GEN_PASS_DECL_LOWERARCTOLLVM
 #include "circt/Conversion/Passes.h.inc"
 
-std::unique_ptr<OperationPass<ModuleOp>> createLowerArcToLLVMPass();
 } // namespace circt
 
 #endif // CIRCT_CONVERSION_ARCTOLLVM_H

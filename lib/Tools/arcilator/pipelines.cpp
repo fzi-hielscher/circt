@@ -135,8 +135,11 @@ void circt::populateArcStateAllocationPipeline(
   pm.addPass(arc::createArcCanonicalizerPass());
 }
 
-void circt::populateArcToLLVMPipeline(OpPassManager &pm) {
-  pm.addPass(createLowerArcToLLVMPass());
+void circt::populateArcToLLVMPipeline(OpPassManager &pm,
+                                      bool emitRuntimeCalls) {
+  LowerArcToLLVMOptions options;
+  options.noRuntimeLib = !emitRuntimeCalls;
+  pm.addPass(createLowerArcToLLVM(options));
   pm.addPass(createCSEPass());
   pm.addPass(arc::createArcCanonicalizerPass());
 }

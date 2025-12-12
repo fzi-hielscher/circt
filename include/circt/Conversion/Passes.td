@@ -726,13 +726,16 @@ def ConvertVerifToSMT : Pass<"convert-verif-to-smt", "mlir::ModuleOp"> {
 
 def LowerArcToLLVM : Pass<"lower-arc-to-llvm", "mlir::ModuleOp"> {
   let summary = "Lower state transfer arc representation to LLVM";
-  let constructor = "circt::createLowerArcToLLVMPass()";
   let dependentDialects = [
     "arc::ArcDialect",
     "mlir::cf::ControlFlowDialect",
     "mlir::LLVM::LLVMDialect",
     "mlir::scf::SCFDialect",
     "mlir::func::FuncDialect"
+  ];
+  let options = [Option<"noRuntimeLib", "no-runtime-lib", "bool",
+                        /*default=*/"true",
+                        "Do not emit calls to the arcilator runtime library">,
   ];
 }
 

@@ -77,6 +77,12 @@
 
 #include <optional>
 
+#ifdef ARCILATOR_ENABLE_JIT
+#include "ArcRuntime/ArcRuntime.h"
+#include "ArcRuntime/Common.h"
+#include "ArcRuntime/JITBind.h"
+#endif // #ifdef ARCILATOR_ENABLE_JIT
+
 using namespace mlir;
 using namespace circt;
 using namespace arc;
@@ -236,9 +242,28 @@ static llvm::cl::list<std::string>
             llvm::cl::ZeroOrMore, llvm::cl::CommaSeparated,
             llvm::cl::cat(mainCategory));
 
+static llvm::cl::opt<bool> noJitRuntime(
+    "jit-no-runtime",
+    llvm::cl::desc("Don't emit calls to the runtime library in the JIT model"),
+    llvm::cl::init(false), llvm::cl::cat(mainCategory));
+
+static llvm::cl::opt<bool> noJitRuntimeBind(
+    "jit-no-runtime-bind",
+    llvm::cl::desc("Don't bind the statically linked JIT Runtime Library"),
+    llvm::cl::init(false), llvm::cl::cat(mainCategory));
+
+static llvm::cl::opt<std::string> jitRuntimeArgs(
+    "jit-runtime-args",
+    llvm::cl::desc("Argument passed to the runtime library for JIT runs."),
+    llvm::cl::init(""), llvm::cl::cat(mainCategory));
+
 //===----------------------------------------------------------------------===//
 // Main Tool Logic
 //===----------------------------------------------------------------------===//
+
+#ifdef ARCILATOR_ENABLE_JIT
+static const char *runtimeArguments;
+#endif
 
 static bool untilReached(Until until) {
   return until >= runUntilBefore || until > runUntilAfter;
@@ -353,7 +378,7 @@ static LogicalResult processBuffer(
             "arcilator"));
 
   if (!untilReached(UntilLLVMLowering)) {
-    populateArcToLLVMPipeline(pmLlvm);
+    populateArcToLLVMPipeline(pmLlvm, !noJitRuntime);
   }
 
   if (printDebugInfo && outputFormat == OutputLLVM)
@@ -428,6 +453,31 @@ static LogicalResult processBuffer(
                          << info.message() << "\n";
           });
       return failure();
+    }
+
+    if (!noJitRuntime) {
+      runtimeArguments = jitRuntimeArgs.c_str();
+      auto &runtimeCallbacks = runtime::getArcRuntimeAPICallbacks();
+      (*executionEngine)
+          ->registerSymbols([&](llvm::orc::MangleAndInterner interner) {
+            llvm::orc::SymbolMap symbolMap;
+            symbolMap[interner(arcJitRuntimeArgsStrSymName)] = {
+                llvm::orc::ExecutorAddr::fromPtr(&runtimeArguments),
+                llvm::JITSymbolFlags::Exported};
+            if (!noJitRuntimeBind) {
+              symbolMap[interner(
+                  runtime::APICallbacks::symName_allocInstance)] = {
+                  llvm::orc::ExecutorAddr::fromPtr(
+                      runtimeCallbacks.allocInstance),
+                  llvm::JITSymbolFlags::Exported};
+              symbolMap[interner(
+                  runtime::APICallbacks::symName_deleteInstance)] = {
+                  llvm::orc::ExecutorAddr::fromPtr(
+                      runtimeCallbacks.deleteInstance),
+                  llvm::JITSymbolFlags::Exported};
+            }
+            return symbolMap;
+          });
     }
 
     auto expectedFunc = (*executionEngine)->lookupPacked(jitEntryPoint);
